@@ -1,0 +1,45 @@
+# Entorno local de desarrollo.
+#   docker compose up -d                 → solo PostgreSQL (desarrollo con `npm run start:dev`)
+#   docker compose --profile full up -d  → PostgreSQL + API en contenedor (requiere Dockerfile)
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: reservas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-reservas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-reservas}
+      POSTGRES_DB: ${POSTGRES_DB:-reservas_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-reservas} -d ${POSTGRES_DB:-reservas_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: reservas-api:local
+    container_name: reservas-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-reservas}:${POSTGRES_PASSWORD:-reservas}@db:5432/${POSTGRES_DB:-reservas_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-cambia-este-secreto}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+    ports:
+      - "${PORT:-3000}:3000"
+
+volumes:
+  pgdata:

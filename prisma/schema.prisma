@@ -1,0 +1,85 @@
+// Esquema de datos del Sistema de Reservas de Espacios Universitarios.
+// Basado en el diagrama de clases de la propuesta del proyecto final:
+//   Usuario 1 ── 0..* Reserva 0..* ── 1 Espacio
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enumeraciones ───────────────────────────────────────────
+
+enum Rol {
+  ESTUDIANTE
+  DOCENTE
+  ADMIN
+}
+
+enum EstadoReserva {
+  ACTIVA
+  CANCELADA
+  FINALIZADA
+}
+
+// ─── Modelos ─────────────────────────────────────────────────
+
+/// Persona que usa el sistema (estudiante, docente o administrador).
+model Usuario {
+  id         Int       @id @default(autoincrement())
+  nombre     String
+  correo     String    @unique
+  /// Hash de la contraseña (bcrypt). Nunca se guarda en texto plano.
+  contrasena String
+  rol        Rol       @default(ESTUDIANTE)
+  creadoEn   DateTime  @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+
+  reservas   Reserva[]
+
+  @@map("usuarios")
+}
+
+/// Espacio reservable: cubículo de estudio, laboratorio, cancha, etc.
+model Espacio {
+  id        Int       @id @default(autoincrement())
+  nombre    String    @unique
+  /// Tipo de espacio (p. ej. "CUBICULO", "LABORATORIO", "CANCHA").
+  tipo      String
+  capacidad Int
+  ubicacion String
+  activo    Boolean   @default(true)
+  creadoEn  DateTime  @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+
+  reservas  Reserva[]
+
+  @@map("espacios")
+}
+
+/// Reserva de un espacio por un usuario en un intervalo [inicio, fin).
+/// Regla de negocio: un espacio nunca puede tener dos reservas ACTIVAS que se
+/// traslapen. Se valida en ReservasService.validarTraslape():
+///   existe otra reserva ACTIVA del mismo espacio con inicio < nuevoFin
+///   AND fin > nuevoInicio  →  traslape.
+model Reserva {
+  id        Int           @id @default(autoincrement())
+  usuarioId Int           @map("usuario_id")
+  espacioId Int           @map("espacio_id")
+  inicio    DateTime
+  fin       DateTime
+  estado    EstadoReserva @default(ACTIVA)
+  creadoEn  DateTime      @default(now()) @map("creado_en")
+  actualizadoEn DateTime  @updatedAt @map("actualizado_en")
+
+  usuario   Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  espacio   Espacio       @relation(fields: [espacioId], references: [id], onDelete: Restrict)
+
+  // Acelera la búsqueda de traslapes y la consulta de disponibilidad por fecha.
+  @@index([espacioId, inicio, fin])
+  @@index([usuarioId])
+  @@map("reservas")
+}
