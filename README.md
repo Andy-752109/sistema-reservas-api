@@ -91,7 +91,7 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 | Contenedores | Docker (build multi-stage), Docker Hub |
 | CI/CD | GitHub Actions |
 | Frontend | React + TypeScript + Vite (repo `sistema-reservas-web`) |
-| Infraestructura como código | Terraform (repo `sistema-reservas-infra`) |
+| Infraestructura como código | Terraform (carpeta `infra/` de este repo) |
 | Nube | Microsoft Azure: App Service, Azure Database for PostgreSQL, Application Insights |
 | Gestión | GitHub Projects |
 
@@ -101,13 +101,12 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 Desarrollador → GitHub → GitHub Actions → Pruebas unitarias → Docker → Docker Hub → Azure → PostgreSQL
 ```
 
-El sistema se reparte en tres repositorios:
+El sistema se reparte en dos repositorios:
 
 | Repositorio | Contenido |
 |-------------|-----------|
-| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile y pipelines del backend. |
-| `sistema-reservas-web` | Frontend React + TypeScript + Vite y sus pipelines. |
-| `sistema-reservas-infra` | Proyecto de Terraform que crea los recursos de Azure. |
+| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile, pipelines del backend y Terraform en `infra/`. |
+| [`sistema-reservas-web`](https://github.com/Andy-752109/sistema-reservas-web) | Frontend React + TypeScript + Vite y sus pipelines. |
 
 Recursos en Azure (Resource Group `reservas-rg`), creados con Terraform, con dos ambientes: **Dev** y **Prod**.
 
@@ -208,6 +207,7 @@ sistema-reservas-api/
 │   ├── prisma/            # PrismaService
 │   └── main.ts            # Bootstrap + Swagger
 ├── test/                  # Pruebas
+├── infra/                 # Terraform: recursos de Azure para Dev y Prod
 ├── Dockerfile             # Build multi-stage
 ├── docker-compose.yml     # PostgreSQL local (+ API opcional)
 ├── .env.example
@@ -224,7 +224,9 @@ sistema-reservas-api/
 
 Flujo: `feature/*` → PR a `develop` (CI) → PR de `develop` a `main` (CI) → merge → CD: Dev → aprobación → Prod.
 
-`main` y `develop` están protegidas: no se permiten commits directos y todo PR necesita 1 aprobación. Cada PR referencia su issue con `Closes #n`.
+`main` y `develop` están protegidas: no se permiten commits directos y todo PR necesita 1 aprobación. `develop` es la rama por defecto de ambos repos, así que el issue se cierra al fusionar el PR ahí.
+
+Cada PR referencia su issue. Todos los issues viven en este repo, así que un PR de aquí usa `Closes #n` y uno de `sistema-reservas-web` usa `Closes Andy-752109/sistema-reservas-api#n`.
 
 ## Gestión del trabajo
 
@@ -234,3 +236,17 @@ El backlog se gestiona en **GitHub Projects** (tablero *“Sistema de Reservas -
 - Etiquetas de área: `backend`, `frontend`, `database`, `infra`, `devops`, `testing`, `observability`, `documentation`.
 - Milestones por fase: Fundación → Desarrollo de dominio → Infraestructura y CI/CD → Observabilidad y presentación.
 - Columnas del tablero: Backlog → Ready → In Progress → In Review → Done.
+- Etiquetas de rol: `rol:backend`, `rol:frontend`, `rol:devops`.
+- Etiquetas de tamaño: `size:S` (1 punto), `size:M` (2 puntos), `size:L` (3 puntos).
+
+### Roles y reparto
+
+Los roles indican quién responde por cada área; la documentación se reparte para que la carga quede pareja.
+
+| Rol | Responsable | Área | Revisa los PR de | Tareas | Puntos |
+|-----|-------------|------|------------------|--------|--------|
+| Backend | Ramiro | API, base de datos y pruebas | Frontend | 14 | 26 |
+| Frontend | Ale | Aplicación web y sus pipelines | DevOps e infra | 14 | 27 |
+| DevOps e infra | Andy | Docker, CI/CD, Terraform y tablero | Backend | 15 | 27 |
+
+Los puntos son una estimación inicial y cuentan una tarea opcional de Frontend (#58, 2 puntos). Al terminar cada fase, el equipo compara los puntos y mueve tareas si alguien va más cargado.
