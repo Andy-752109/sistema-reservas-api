@@ -90,7 +90,9 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 | Documentación | Swagger / OpenAPI (`/api/docs`) |
 | Contenedores | Docker (build multi-stage), Docker Hub |
 | CI/CD | GitHub Actions |
-| Nube | Microsoft Azure: App Service, Azure Database for PostgreSQL, App Configuration, Application Insights |
+| Frontend | React + TypeScript + Vite (repo `sistema-reservas-web`) |
+| Infraestructura como código | Terraform (carpeta `infra/` de este repo) |
+| Nube | Microsoft Azure: App Service, Azure Database for PostgreSQL, Application Insights |
 | Gestión | GitHub Projects |
 
 ## Arquitectura e infraestructura
@@ -99,15 +101,23 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 Desarrollador → GitHub → GitHub Actions → Pruebas unitarias → Docker → Docker Hub → Azure → PostgreSQL
 ```
 
-Recursos en Azure (Resource Group `reservas-rg`):
+El sistema se reparte en dos repositorios:
+
+| Repositorio | Contenido |
+|-------------|-----------|
+| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile, pipelines del backend y Terraform en `infra/`. |
+| [`sistema-reservas-web`](https://github.com/Andy-752109/sistema-reservas-web) | Frontend React + TypeScript + Vite y sus pipelines. |
+
+Recursos en Azure (Resource Group `reservas-rg`), creados con Terraform, con dos ambientes: **Dev** y **Prod**.
 
 | Recurso | Propósito |
 |---------|-----------|
-| **Azure App Service** (+ App Service Plan `reservas-plan`) | Ejecuta la API NestJS como contenedor Docker obtenido de Docker Hub. |
-| **Azure Database for PostgreSQL** (`reservas-db`) | Persistencia de usuarios, espacios y reservas; conexión vía Prisma con SSL. |
-| **Azure App Configuration / App Settings** | Variables de entorno y secretos (`JWT_SECRET`, `DATABASE_URL`, …). |
-| **Application Insights** | Logs, errores, métricas de rendimiento y trazas de solicitudes. |
-| **Azure Static Web Apps** *(propuesta)* | Frontend React + TypeScript + Vite que consume la API vía HTTPS. |
+| **App Service Plan** `reservas-plan` (Linux B1) | Cómputo compartido por las 4 Web Apps; de aquí salen las métricas de CPU y memoria. |
+| **Web Apps** `api-dev`, `api-prod` | Ejecutan la API como contenedor obtenido de Docker Hub. |
+| **Web Apps** `web-dev`, `web-prod` | Ejecutan el frontend (nginx) como contenedor obtenido de Docker Hub. |
+| **Azure Database for PostgreSQL Flexible Server** | Un servidor con dos bases: `reservas_dev` y `reservas_prod`; conexión vía Prisma con SSL. |
+| **App Settings** de cada Web App | Variables de entorno y secretos (`DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS`, …). |
+| **Application Insights** + Log Analytics | APM: requests, trazas, errores y mensajes personalizados por ambiente. |
 
 Flujo del sistema:
 
@@ -125,10 +135,12 @@ Se priorizan recursos gratuitos o de bajo costo de Azure, adecuados a un proyect
 
 | Disparador | Jobs |
 |------------|------|
-| Pull Request a `develop` o `main` | `npm ci` → `npm test` (Jest) → `npm run build` |
-| Merge / push a `main` | Lo anterior + build de imagen Docker → push a Docker Hub con tags `latest` y `<commit-sha>` → despliegue en Azure App Service |
+| Pull Request a `develop` o `main` | `npm ci` → lint → `npm run test:cov` (Jest, resultados y cobertura publicados en el run) → `npm run build` |
+| Merge / push a `main` | Pruebas → imagen Docker a Docker Hub (tags `<commit-sha>` y `latest`) → **deploy a Dev** → **aprobación manual** (environment `production`) → **deploy a Prod** con la misma imagen |
 
-Secrets requeridos en GitHub Actions: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` y las credenciales de publicación de Azure (`AZURE_WEBAPP_PUBLISH_PROFILE` o service principal).
+Cada deploy aplica `prisma migrate deploy` en la base del ambiente y hace un smoke test a `/health`.
+
+Equivalente a las *service connections* de Azure DevOps: un service principal de Azure con credencial federada (OIDC) usado por `azure/login`, y un token de Docker Hub. Secrets requeridos: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`.
 
 ## Puesta en marcha local
 
@@ -195,6 +207,7 @@ sistema-reservas-api/
 │   ├── prisma/            # PrismaService
 │   └── main.ts            # Bootstrap + Swagger
 ├── test/                  # Pruebas
+├── infra/                 # Terraform: recursos de Azure para Dev y Prod
 ├── Dockerfile             # Build multi-stage
 ├── docker-compose.yml     # PostgreSQL local (+ API opcional)
 ├── .env.example
@@ -209,8 +222,31 @@ sistema-reservas-api/
 | `develop` | Rama de integración de las funcionalidades terminadas; aquí se validan los cambios antes de pasarlos a producción. |
 | `feature/*` | Una rama por funcionalidad, creada desde `develop` (p. ej. `feature/authentication`, `feature/spaces`, `feature/reservations`). |
 
-Flujo: `feature/*` → PR a `develop` (CI) → PR de `develop` a `main` (CI + CD).
+Flujo: `feature/*` → PR a `develop` (CI) → PR de `develop` a `main` (CI) → merge → CD: Dev → aprobación → Prod.
+
+`main` y `develop` están protegidas: no se permiten commits directos y todo PR necesita 1 aprobación. `develop` es la rama por defecto de ambos repos, así que el issue se cierra al fusionar el PR ahí.
+
+Cada PR referencia su issue. Todos los issues viven en este repo, así que un PR de aquí usa `Closes #n` y uno de `sistema-reservas-web` usa `Closes Andy-752109/sistema-reservas-api#n`.
 
 ## Gestión del trabajo
 
-El backlog, los issues y su avance se gestionan en **GitHub Projects** (tablero *“Sistema de Reservas - Tablero de Trabajo”*) con las etiquetas `backend`, `database`, `devops`, `testing` y `documentation`.
+El backlog se gestiona en **GitHub Projects** (tablero *“Sistema de Reservas - Tablero de Trabajo”*) con una jerarquía **Épica → Historia de usuario → Tarea** usando sub-issues:
+
+- Etiquetas de tipo: `epic`, `story`, `task`.
+- Etiquetas de área: `backend`, `frontend`, `database`, `infra`, `devops`, `testing`, `observability`, `documentation`.
+- Milestones por fase: Fundación → Desarrollo de dominio → Infraestructura y CI/CD → Observabilidad y presentación.
+- Columnas del tablero: Backlog → Ready → In Progress → In Review → Done.
+- Etiquetas de rol: `rol:backend`, `rol:frontend`, `rol:devops`.
+- Etiquetas de tamaño: `size:S` (1 punto), `size:M` (2 puntos), `size:L` (3 puntos).
+
+### Roles y reparto
+
+Los roles indican quién responde por cada área; la documentación se reparte para que la carga quede pareja.
+
+| Rol | Responsable | Área | Revisa los PR de | Tareas | Puntos |
+|-----|-------------|------|------------------|--------|--------|
+| Backend | Ramiro | API, base de datos y pruebas | Frontend | 14 | 26 |
+| Frontend | Ale | Aplicación web y sus pipelines | DevOps e infra | 14 | 27 |
+| DevOps e infra | Andy | Docker, CI/CD, Terraform y tablero | Backend | 15 | 27 |
+
+Los puntos son una estimación inicial y cuentan una tarea opcional de Frontend (#58, 2 puntos). Al terminar cada fase, el equipo compara los puntos y mueve tareas si alguien va más cargado.
