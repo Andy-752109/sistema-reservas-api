@@ -76,6 +76,8 @@ El sistema reúne en un solo lugar el catálogo de espacios y sus horarios, **im
 
 El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 
+La documentación detallada de componentes, métodos, permisos y endpoints se revisa en [docs/wiki/Componentes.md](docs/wiki/Componentes.md). Incluye un diagrama de clases Mermaid y referencia el commit de implementación revisado; las [instrucciones de publicación](docs/wiki/PUBLICACION-componentes.md) explican cómo llevarla a la Wiki.
+
 ## Stack tecnológico
 
 | Capa | Tecnología |
