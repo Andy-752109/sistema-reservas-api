@@ -4,6 +4,7 @@ import { IsString } from 'class-validator';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { PrismaService } from './../src/prisma/prisma.service';
 
 class ValidationTestDto {
   @IsString()
@@ -40,6 +41,20 @@ describe('AppController (e2e)', () => {
       .get('/')
       .expect(200)
       .expect('Hello World!');
+  });
+
+  it('inyecta PrismaService y consulta las tres tablas migradas', async () => {
+    const prisma = app.get(PrismaService);
+    const counts = await prisma.$transaction([
+      prisma.usuario.count(),
+      prisma.espacio.count(),
+      prisma.reserva.count(),
+    ]);
+
+    expect(counts).toHaveLength(3);
+    for (const count of counts) {
+      expect(count).toBeGreaterThanOrEqual(0);
+    }
   });
 
   it('elimina propiedades sin decoradores mediante el ValidationPipe global', () => {
