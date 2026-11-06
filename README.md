@@ -407,6 +407,48 @@ Los orígenes ajenos reciben 403, incluidos sus preflight, sin `Access-Control-A
 
 Las dos variables están en `.env.example` y se propagan al servicio API de Compose. La documentación de `/health` está en Swagger, tag `sistema`. Las pruebas cubren 200/503, versión, errores sanitizados, orígenes exactos, rechazos, preflight y conservación del guard JWT; la suite HTTP completa también consulta PostgreSQL real.
 
+### Application Insights (issue #56)
+
+La API conserva Node **20.19+**. Se fija `@azure/monitor-opentelemetry` en **1.18.0** y se fijan dependencias transitivas mediante `overrides`: las versiones actuales de Azure requieren Node 22. No actualices estos paquetes sin repetir la comprobación de Node 20 y la auditoría. Algunas dependencias OpenTelemetry se actualizan explícitamente para corregir avisos de seguridad. El requisito de Node del proyecto y la imagen prevista en el issue #3 se conservan.
+
+`main.ts` carga `.env`, inicializa la telemetría y después importa el arranque de Nest. Así el SDK instrumenta HTTP y el driver `pg` utilizado por Prisma antes de que se carguen. Al cerrar Nest se vacía y cierra el SDK. Si `APPLICATIONINSIGHTS_CONNECTION_STRING` está ausente, vacía o solo contiene espacios, no se carga Azure Monitor ni se crea un exportador.
+
+Configura estas App Settings en cada ambiente, o en `.env` para una prueba voluntaria:
+
+| Variable | Dev | Prod |
+|----------|-----|------|
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Connection String del recurso de Dev | Connection String del recurso de Prod |
+| `OTEL_SERVICE_NAME` | `api-dev` | `api-prod` |
+| `COMMIT_SHA` | SHA desplegado | SHA desplegado |
+
+La cadena se obtiene del recurso **Application Insights → Overview → Connection String**, creado por infraestructura; no es una credencial del seed. No la subas a Git. Con telemetría habilitada, un rol distinto de `api-dev` o `api-prod` impide el arranque para evitar mezclar ambientes. El rol se configura explícitamente porque ambos contenedores pueden usar `NODE_ENV=production`. Evita un segundo agente automático de Application Insights sobre este SDK para no duplicar eventos.
+
+Se capturan requests HTTP y dependencias PostgreSQL, con muestreo del 100% para las evidencias del proyecto. No se habilitan Live Metrics, el snippet del navegador ni los adaptadores de logs Bunyan/Winston. Los parámetros SQL no se incluyen; no concatenes datos personales o secretos en consultas SQL. La instrumentación `pg` corregida usa atributos nuevos y un hook agrega los atributos de compatibilidad que el exportador Node 20 necesita para identificar `postgresql` y su destino en Application Map. Las trazas de negocio corresponden al issue #57.
+
+**Verificación local reproducible:** usa una base temporal PostgreSQL, establece `DATABASE_URL` con su URL, aplica `npm run prisma:deploy`, ejecuta `npm run build` y después `npm run test:telemetry`. El script inicia un colector local, usa una clave ficticia, deshabilita Statsbeat y verifica ambos roles, la request `/health`, la dependencia PostgreSQL y su identificador de operación compartido. No utiliza la cadena real ni envía datos a Azure. Para comprobar específicamente Node 20:
+
+```sh
+npx --yes --package=node@20.19.5 node test/telemetry-smoke.cjs
+```
+
+La comprobación local pasó con Node 20.19.5 y 24.16.0; `npm audit --omit=dev` no reportó vulnerabilidades al implementar este issue. La dependencia de desarrollo existente `@prisma/streams-local` declara Node 22: no forma parte del runtime de la API ni se usa en estas pruebas; queda fuera de los cambios de telemetría.
+
+**Evidencia pendiente en Azure:** desplegar con las variables de su ambiente, llamar varias veces `GET /health` y esperar la ingestión. En Application Insights → **Application Map**, comprobar el nodo `api-dev`/`api-prod` y su dependencia PostgreSQL. En **Transaction search**, abrir una request `/health` y comprobar la dependencia correlacionada. En Logs puede consultarse:
+
+```kusto
+requests
+| where timestamp > ago(30m)
+| where cloud_RoleName in ("api-dev", "api-prod")
+| project timestamp, name, cloud_RoleName, operation_Id
+| join kind=inner (
+    dependencies
+    | where timestamp > ago(30m) and type == "postgresql"
+    | project operation_Id, dependencyName=name, target
+) on operation_Id
+```
+
+Guardar capturas de ambos ambientes como evidencia del issue. El colector local valida los envelopes exportados, pero la aparición en el portal solo queda confirmada después de esa verificación con los recursos desplegados. Referencia: [configuración del SDK de Azure Monitor](https://github.com/Azure/azure-sdk-for-js/tree/main/sdk/monitor/monitor-opentelemetry).
+
 ## Variables de entorno
 
 | Variable | Descripción | Ejemplo |

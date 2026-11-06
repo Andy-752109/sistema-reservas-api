@@ -1,4 +1,4 @@
-import { Module, ValidationPipe } from '@nestjs/common';
+import { Module, OnApplicationShutdown, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
@@ -29,4 +29,10 @@ import { HealthModule } from './health/health.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements OnApplicationShutdown {
+  shutdownTelemetry?: () => Promise<void>;
+
+  async onApplicationShutdown() {
+    await this.shutdownTelemetry?.();
+  }
+}
