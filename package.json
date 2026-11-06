@@ -39,6 +39,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.4.8",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "bcrypt": "^6.0.0",
@@ -98,16 +99,52 @@
     ],
     "coverageDirectory": "../coverage",
     "coverageThreshold": {
-      "./src/app.service.ts": { "branches": 70, "functions": 70, "lines": 70, "statements": 70 },
-      "./src/auth/auth.service.ts": { "branches": 70, "functions": 70, "lines": 70, "statements": 70 },
-      "./src/espacios/espacios.service.ts": { "branches": 70, "functions": 70, "lines": 70, "statements": 70 },
-      "./src/prisma/prisma.service.ts": { "branches": 70, "functions": 70, "lines": 70, "statements": 70 },
-      "./src/reservas/reservas.service.ts": { "branches": 70, "functions": 70, "lines": 70, "statements": 70 },
-      "./src/usuarios/usuarios.service.ts": { "branches": 70, "functions": 70, "lines": 70, "statements": 70 }
+      "./src/app.service.ts": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      },
+      "./src/auth/auth.service.ts": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      },
+      "./src/espacios/espacios.service.ts": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      },
+      "./src/prisma/prisma.service.ts": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      },
+      "./src/reservas/reservas.service.ts": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      },
+      "./src/usuarios/usuarios.service.ts": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
     },
     "reporters": [
       "default",
-      ["jest-junit", { "outputDirectory": "<rootDir>/../test-results", "outputName": "junit.xml" }]
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "<rootDir>/../test-results",
+          "outputName": "junit.xml"
+        }
+      ]
     ],
     "testEnvironment": "node"
   }
