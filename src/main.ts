@@ -1,15 +1,20 @@
-import { NestFactory } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
-import { AppModule } from './app.module';
-import { setupSwagger } from './swagger';
-import { createCorsOptions } from './config/cors.config';
+import 'dotenv/config';
+import { initializeTelemetry } from './telemetry';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableShutdownHooks();
-  const config = app.get(ConfigService);
-  app.enableCors(createCorsOptions(config));
-  setupSwagger(app);
-  await app.listen(Number(config.get<string>('PORT') ?? 3000));
+  const shutdownTelemetry = await initializeTelemetry();
+  try {
+    // Load Nest and PostgreSQL only after their instrumentation is registered.
+    const { startApplication } = await import('./bootstrap.js');
+    await startApplication(shutdownTelemetry);
+  } catch (error) {
+    await shutdownTelemetry?.();
+    throw error;
+  }
 }
-void bootstrap();
+void bootstrap().catch(() => {
+  console.error(
+    'No se pudo iniciar la API. Revisa la configuracion del entorno.',
+  );
+  process.exitCode = 1;
+});
