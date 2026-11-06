@@ -267,9 +267,40 @@ Ejemplo sin reservas:
 }
 ```
 
-Los bloques son intervalos continuos máximos `[inicio, fin)`, sin duración fija, expresados en ISO 8601 con offset. Se descuentan solo reservas ACTIVAS que se traslapen con el horario; las contiguas/superpuestas se unen y se recortan a los límites. Si está totalmente ocupado, `bloquesLibres` es `[]`. La respuesta no expone usuarios ni detalles de reservas. Es una consulta de disponibilidad; la validación definitiva al reservar corresponde al issue #6.
+Los bloques son intervalos continuos máximos `[inicio, fin)`, sin duración fija, expresados en ISO 8601 con offset. Se descuentan solo reservas ACTIVAS que se traslapen con el horario; las contiguas/superpuestas se unen y se recortan a los límites. Si está totalmente ocupado, `bloquesLibres` es `[]`. La respuesta no expone usuarios ni detalles de reservas. La creación y actualización de reservas revalidan la disponibilidad dentro de una transacción.
 
 Las variables nuevas están en `.env.example` y se propagan al servicio API de Compose. Las pruebas unitarias cubren intervalos, fechas, zonas y cambios de horario; las pruebas HTTP cubren filtros, permisos, validación, reservas canceladas/finalizadas y desactivación con historial.
+
+### Reservas y traslapes (issue #6)
+
+Todas las rutas requieren `Authorization: Bearer <access_token>`.
+
+| Método y ruta | Comportamiento |
+|---------------|----------------|
+| `POST /reservas` | Crea una reserva ACTIVA del usuario autenticado (201). |
+| `GET /reservas` | Lista las reservas propias, de cualquier estado; ADMIN ve todas (200). |
+| `PUT /reservas/:id` | Modifica una reserva ACTIVA del propio usuario o de cualquier usuario si es ADMIN (200). |
+| `DELETE /reservas/:id` | Marca como CANCELADA, conserva el registro y devuelve la reserva (200). Solo propietario o ADMIN. |
+
+POST y PUT reciben el mismo cuerpo completo:
+
+```json
+{
+  "espacioId": 1,
+  "inicio": "2026-11-10T09:00:00-06:00",
+  "fin": "2026-11-10T10:00:00-06:00"
+}
+```
+
+Los instantes deben ser ISO 8601 con `Z` u offset explícito, con precisión máxima de milisegundos e `inicio < fin`. Las respuestas expresan los instantes en UTC (`Z`). El propietario se toma del JWT: los campos `usuarioId` y `estado` enviados por el cliente se eliminan por `whitelist`. PUT requiere `espacioId`, `inicio` y `fin`; permite mover una reserva a otro espacio activo y conserva el propietario y el estado.
+
+Hay traslape si existe una reserva ACTIVA del mismo espacio con `existente.inicio < nuevoFin AND existente.fin > nuevoInicio`. Las reservas contiguas se permiten. PUT excluye la propia reserva al validar. Un conflicto devuelve `409`; también se rechaza con `409` la modificación de una CANCELADA o FINALIZADA. DELETE puede repetirse y conserva el estado CANCELADA; las reservas canceladas/finalizadas no bloquean nuevos intervalos.
+
+Crear o modificar bloquea la fila del espacio mediante `FOR NO KEY UPDATE`, comprueba que siga activo y valida el traslape antes de escribir, todo dentro de una transacción `READ COMMITTED`. Las modificaciones y cancelaciones también bloquean la reserva. Los bloqueos de PostgreSQL se comparten entre instancias y se liberan al confirmar o revertir. Las futuras escrituras de reservas deben respetar este protocolo para conservar la garantía frente a solicitudes simultáneas.
+
+Errores previstos: `400` para DTOs, fechas, intervalos, ids inválidos o espacio inactivo; `401` sin autenticación válida; `403` al modificar/cancelar reservas ajenas; `404` para reserva o espacio inexistente; `409` para traslapes o modificación de una reserva no ACTIVA. Esta etapa valida intervalo, espacio activo y traslape; el horario del issue #5 determina la ventana mostrada por disponibilidad.
+
+Las pruebas incluyen reservas contiguas, traslapes parciales/contenidos/envolventes, exclusión de la propia reserva, permisos, cambios de espacio y cancelación sin borrado. Las pruebas de concurrencia levantan dos instancias de NestJS conectadas a PostgreSQL: creación/creación, actualización/creación, actualización/actualización y cancelación/actualización.
 
 ## Variables de entorno
 
