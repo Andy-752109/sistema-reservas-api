@@ -144,7 +144,7 @@ Equivalente a las *service connections* de Azure DevOps: un service principal de
 
 ## Puesta en marcha local
 
-**Requisitos:** Node.js 20+, npm, Docker y Docker Compose.
+**Requisitos:** Node.js 20.19+ (rama 20), 22.12+ (rama 22) o 24+, npm, Docker y Docker Compose.
 
 ```bash
 # 1. Clonar el repositorio
@@ -157,7 +157,13 @@ cp .env.example .env
 # 3. Instalar dependencias con las versiones del lockfile
 npm ci
 
-# 4. Ejecutar la API en modo desarrollo
+# 4. Levantar PostgreSQL y esperar a que esté healthy
+docker compose up -d --wait db
+
+# 5. Aplicar las migraciones versionadas (incluida la inicial)
+npm run prisma:deploy
+
+# 6. Ejecutar la API en modo desarrollo
 npm run start:dev
 ```
 
@@ -167,7 +173,13 @@ npm run start:dev
 
 En PowerShell, usa `Copy-Item .env.example .env` para copiar la configuración. Si la política de ejecución bloquea `npm.ps1`, ejecuta los comandos con `npm.cmd` (por ejemplo, `npm.cmd run start:dev`).
 
-**Estado del issue #1:** la base de NestJS incluye los módulos `usuarios`, `espacios`, `reservas`, `auth` y `prisma`, y un `ValidationPipe` global con `whitelist: true`. Los módulos están vacíos; la API puede arrancar sin PostgreSQL. La conexión con Prisma y las migraciones corresponden al issue #2; Swagger corresponde al issue #8 y aún no está disponible en `/api/docs`.
+La base de NestJS incluye los módulos `usuarios`, `espacios`, `reservas`, `auth` y `prisma`, y un `ValidationPipe` global con `whitelist: true`. `PrismaModule` exporta `PrismaService`: los módulos que necesiten consultar datos deben importar `PrismaModule` e inyectar el servicio. La conexión se establece durante el arranque de la API; PostgreSQL debe estar disponible. Al cerrar la aplicación se desconecta Prisma. Swagger corresponde al issue #8 y aún no está disponible en `/api/docs`.
+
+Se fijan `prisma`, `@prisma/client` y `@prisma/adapter-pg` en `7.10.1`. `prisma.config.ts` lee `DATABASE_URL` para las migraciones y `PrismaService` usa `ConfigService` para la conexión de la API. El generador produce un cliente CommonJS en `src/generated/prisma/`, excluido de Git y regenerado en cada instalación. El lockfile se mantiene con npm 10 y se comprueba con `npx npm@10 ci`.
+
+`npm ci` genera Prisma Client mediante `postinstall`, sin conectarse a PostgreSQL. Si cambia el esquema, ejecuta `npm run prisma:generate`. Para crear una nueva migración en desarrollo, usa `npm run prisma:migrate -- --name descripcion`; para instalar las migraciones existentes, usa `npm run prisma:deploy`. `npm run prisma:status` consulta el estado. No es necesario regenerar la migración inicial al clonar.
+
+Los datos locales persisten en el volumen `pgdata`. `docker compose down` detiene el entorno sin borrar ese volumen. Si cambias `POSTGRES_PORT`, actualiza también el puerto de `DATABASE_URL` en tu `.env`. No versiones ese archivo.
 
 Para levantar la base de datos y la API en contenedores (cuando exista el `Dockerfile`):
 
@@ -180,7 +192,7 @@ Pruebas:
 ```bash
 npm test          # pruebas unitarias
 npm run test:cov  # cobertura
-npm run test:e2e  # arranque HTTP y validación global
+npm run test:e2e  # HTTP, validación y Prisma; requiere PostgreSQL y migraciones
 npm run lint      # revisión con ESLint, sin modificar archivos
 npm run format    # formato de src/ y test/ con Prettier
 npm run build     # compila en dist/
