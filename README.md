@@ -202,6 +202,37 @@ Después de compilar, `npm run start:prod` ejecuta `dist/main.js`.
 
 El `override` de Multer en `package.json` mantiene la dependencia transitiva de `@nestjs/platform-express` en la versión corregida `2.5.x` o posterior dentro de la versión mayor 2 (GHSA-q7qp-rjg7-q26m).
 
+### Usuarios y autenticación (issue #4)
+
+| Método y ruta | Acceso | Resultado |
+|---------------|--------|-----------|
+| `POST /usuarios` | Público | Registra un ESTUDIANTE; devuelve el perfil sin contraseña (201). |
+| `POST /login` | Público | Devuelve `{ "access_token": "..." }` (200). |
+| `GET /usuarios` | ADMIN | Lista perfiles sin hashes (200). |
+| `GET /usuarios/:id` | ADMIN o el propio usuario | Consulta un perfil (200). |
+| `PATCH /usuarios/:id` | ADMIN o el propio usuario | Actualiza el perfil (200); solo ADMIN puede cambiar `rol`. |
+| `DELETE /usuarios/:id` | ADMIN | Elimina el usuario (204, sin cuerpo). |
+
+El registro recibe `nombre`, `correo` y `contrasena`. El login recibe `correo` y `contrasena`. `PATCH` acepta cualquiera de esos campos y `rol` (`ESTUDIANTE`, `DOCENTE`, `ADMIN`), sujeto a los permisos anteriores. Nombre y correo se recortan; el correo se normaliza a minúsculas. La contraseña requiere al menos 8 caracteres y como máximo 72 bytes UTF-8 (límite de bcrypt); se almacena con bcrypt, costo 12. Nunca se devuelve la contraseña ni su hash.
+
+Ejemplo de registro:
+
+```json
+{
+  "nombre": "Estudiante de ejemplo",
+  "correo": "estudiante@example.com",
+  "contrasena": "UnaClaveDeEjemplo123!"
+}
+```
+
+Envía el token como `Authorization: Bearer <access_token>`. El JWT incluye `sub` (id del usuario), `rol`, `iat` y `exp`; se firma con HS256 usando `JWT_SECRET` y vence según `JWT_EXPIRES_IN` (por defecto `1h`). Configura un secreto propio en `.env` antes de usar autenticación; el valor de `.env.example` es solo un marcador. Si falta `JWT_SECRET`, la aplicación no arranca.
+
+Los guards consultan el usuario y su rol vigente en la base de datos: un usuario eliminado pierde acceso y un cambio de rol se aplica aunque el token aún conserve el rol anterior. Cambiar la contraseña no revoca tokens ya emitidos; estos conservan su expiración. El registro público ignora el campo `rol` y siempre crea estudiantes. La creación inicial del administrador corresponde al seed del issue #22; este issue no crea cuentas predeterminadas.
+
+Errores previstos: `400` para DTOs o ids no enteros inválidos, `401` para credenciales o tokens inválidos/expirados, `403` para falta de permisos, `404` para usuarios no encontrados y `409` para correo duplicado. Los campos ajenos al DTO se eliminan mediante `whitelist`.
+
+Las pruebas unitarias de `AuthService` usan bcrypt real y dobles de Prisma/JWT. Las pruebas e2e usan PostgreSQL y crean usuarios con correos únicos; al terminar eliminan únicamente sus propios usuarios. Para ejecutarlas en una base dedicada, define `DATABASE_URL`, aplica `npm run prisma:deploy` y ejecuta `npm run test:e2e -- --runInBand`. Incluyen registro, login, DTOs, permisos, cambios de contraseña, degradación de roles y tokens de usuarios eliminados.
+
 ## Variables de entorno
 
 | Variable | Descripción | Ejemplo |
