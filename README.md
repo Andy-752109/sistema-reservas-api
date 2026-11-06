@@ -449,6 +449,31 @@ requests
 
 Guardar capturas de ambos ambientes como evidencia del issue. El colector local valida los envelopes exportados, pero la aparición en el portal solo queda confirmada después de esa verificación con los recursos desplegados. Referencia: [configuración del SDK de Azure Monitor](https://github.com/Azure/azure-sdk-for-js/tree/main/sdk/monitor/monitor-opentelemetry).
 
+### Trazas de negocio y errores (issue #57)
+
+Las operaciones de reservas usan la API de logs de OpenTelemetry y el exportador ya configurado en el issue #56. Sin cadena de Application Insights no se crea un proveedor de logs y estas llamadas no exportan datos. No hace falta activar Bunyan/Winston ni agregar otra instancia del SDK.
+
+| Evento | Severidad | Momento y propiedades |
+|--------|-----------|-----------------------|
+| `reserva.creada` | INFO | Después de confirmar la transacción; `reservaId`, `espacioId`, `usuarioId`, `actorId` |
+| `reserva.cancelada` | INFO | Después de confirmar un cambio a CANCELADA; mismos identificadores. Repetir la cancelación no repite la traza |
+| `reserva.traslape` | WARN | Al rechazar creación o actualización por conflicto; `espacioId`, `usuarioId` y `actorId` del solicitante |
+| `api.error_5xx` | ERROR / excepción | Filtro global para errores no controlados (500) y `HttpException` con estado 500–599; código, método y plantilla de ruta |
+
+En las trazas de éxito, `usuarioId` identifica al propietario y `actorId` a quien ejecutó la operación, que puede ser ADMIN. Los identificadores aparecen en `customDimensions`; el contexto activo vincula los logs y excepciones con `operation_Id`. Las trazas informativas van a `traces`; los errores llevan los atributos de excepción que Azure Monitor convierte a `exceptions`. Un conflicto 409 conserva su respuesta de negocio y solo genera WARN, sin excepción 5xx.
+
+El filtro conserva las respuestas 4xx y el contrato sanitizado de `/health` (503 con versión y estado de la base). Los demás 5xx conservan su código y responden `Internal server error`. En telemetría, la excepción usa el tipo genérico `InternalServerError`, mensaje fijo y un marcador de stack del filtro: **no conserva el mensaje ni el stack original**, que podrían incluir SQL o secretos. Para esta demo permite localizar y correlacionar el fallo, pero no reconstruir su causa mediante el stack original. No se registran cuerpos, tokens, cabeceras, correos ni query strings en estos eventos.
+
+La consulta está guardada en [`docs/observability/demo-apm.kql`](docs/observability/demo-apm.kql). Desde **Application Insights → Logs**, pega su contenido, selecciona el ambiente y ejecútala después de crear, intentar traslapar y cancelar una reserva. Guarda la consulta como `Reservas-APM-demo` en el recurso de cada ambiente. Las tablas usan los nombres del contexto de Application Insights (`traces`/`exceptions`); ajusta el rango de 30 minutos si la demo es anterior. La consulta muestra rol, severidad, identificadores y `operation_Id` para abrir la transacción relacionada.
+
+`npm run test:observability` amplía el colector local del issue #56: requiere `DATABASE_URL` de una **base temporal migrada**, crea fixtures propios y los elimina al terminar, comprueba una creación, un rechazo por traslape, una cancelación (incluyendo repetición) y un 500 inyectado únicamente en el proceso de prueba. Verifica los envelopes INFO/WARN/ExceptionData y su correlación sin enviar datos a Azure. No se agregó ninguna ruta de error a la API. Usa los puertos locales 31057/31058; puedes cambiarlos con `TELEMETRY_TEST_COLLECTOR_PORT` y `TELEMETRY_TEST_API_PORT` si están ocupados. Para Node 20:
+
+```sh
+npx --yes --package=node@20.19.5 node test/telemetry-smoke.cjs --business
+```
+
+Queda pendiente ejecutar y guardar la consulta en los recursos Azure desplegados y capturar su resultado para la presentación. El archivo KQL y la exportación local no sustituyen esa evidencia del portal. Referencia de instrumentación: [OpenTelemetry para JavaScript](https://opentelemetry.io/docs/languages/js/instrumentation/).
+
 ## Variables de entorno
 
 | Variable | Descripción | Ejemplo |

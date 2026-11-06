@@ -46,7 +46,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
-    "test:telemetry": "node test/telemetry-smoke.cjs"
+    "test:telemetry": "node test/telemetry-smoke.cjs",
+    "test:observability": "node test/telemetry-smoke.cjs --business"
   },
   "dependencies": {
     "@azure/monitor-opentelemetry": "1.18.0",
@@ -57,6 +58,8 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.8",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/api-logs": "0.217.0",
     "@opentelemetry/instrumentation-pg": "0.73.0",
     "@opentelemetry/resources": "2.12.0",
     "@prisma/adapter-pg": "7.10.1",

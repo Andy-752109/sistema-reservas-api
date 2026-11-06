@@ -9,6 +9,7 @@ import { Prisma } from '../generated/prisma/client';
 import { EstadoReserva, Rol } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservasService } from './reservas.service';
+import { logs, LogRecord, SeverityNumber } from '@opentelemetry/api-logs';
 
 describe('ReservasService', () => {
   const findFirst = jest.fn();
@@ -73,6 +74,13 @@ describe('ReservasService', () => {
 });
 
 describe('ReservasService: reglas de negocio con Prisma simulado', () => {
+  const emit = jest.fn<void, [LogRecord]>();
+  beforeAll(() => {
+    jest
+      .spyOn(logs, 'getLogger')
+      .mockReturnValue({ emit, enabled: () => true });
+  });
+  afterAll(() => jest.restoreAllMocks());
   const owner: AuthUser = { id: 1, rol: Rol.ESTUDIANTE };
   const admin: AuthUser = { id: 2, rol: Rol.ADMIN };
   const stranger: AuthUser = { id: 3, rol: Rol.DOCENTE };
@@ -107,6 +115,9 @@ describe('ReservasService: reglas de negocio con Prisma simulado', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    jest
+      .spyOn(logs, 'getLogger')
+      .mockReturnValue({ emit, enabled: () => true });
     db.findFirst.mockResolvedValue(null);
     db.findUniqueOrThrow.mockResolvedValue(row);
     db.create.mockResolvedValue(row);
@@ -245,6 +256,79 @@ describe('ReservasService: reglas de negocio con Prisma simulado', () => {
       data: { estado: EstadoReserva.CANCELADA },
     });
     expect(db.delete).not.toHaveBeenCalled();
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'reserva.cancelada',
+        severityNumber: SeverityNumber.INFO,
+        attributes: {
+          event: 'reserva.cancelada',
+          reservaId: 7,
+          espacioId: 2,
+          usuarioId: 1,
+          actorId: 1,
+        },
+      }),
+    );
+  });
+
+  it('does not emit success if the transaction fails at commit', async () => {
+    transaction.mockRejectedValue(new Error('commit failure'));
+    await expect(service.crear(dto(), owner)).rejects.toThrow('commit failure');
+    await expect(service.cancelar(7, owner)).rejects.toThrow('commit failure');
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('emits creation only after transaction completion', async () => {
+    transaction.mockImplementation(
+      async (work: (client: Prisma.TransactionClient) => Promise<unknown>) => {
+        const result = await work(tx);
+        expect(emit).not.toHaveBeenCalled();
+        return result;
+      },
+    );
+    await service.crear(dto(), owner);
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'reserva.creada',
+        severityNumber: SeverityNumber.INFO,
+        attributes: {
+          event: 'reserva.creada',
+          reservaId: 7,
+          espacioId: 2,
+          usuarioId: 1,
+          actorId: 1,
+        },
+      }),
+    );
+  });
+
+  it('emits a warning on overlap without reporting creation', async () => {
+    db.findFirst.mockResolvedValue({ id: 99 });
+    await expect(service.crear(dto(), owner)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'reserva.traslape',
+        severityNumber: SeverityNumber.WARN,
+        attributes: {
+          event: 'reserva.traslape',
+          espacioId: 2,
+          usuarioId: 1,
+          actorId: 1,
+        },
+      }),
+    );
+  });
+
+  it('does not repeat cancellation telemetry for an already canceled reservation', async () => {
+    db.findUniqueOrThrow.mockResolvedValue({
+      ...row,
+      estado: EstadoReserva.CANCELADA,
+    });
+    await service.cancelar(7, owner);
+    expect(emit).not.toHaveBeenCalled();
   });
 
   it.each([EstadoReserva.CANCELADA, EstadoReserva.FINALIZADA])(
