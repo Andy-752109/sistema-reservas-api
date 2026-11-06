@@ -311,7 +311,7 @@ npm test -- --runInBand
 npm run test:cov -- --runInBand
 ```
 
-`npm test` genera el reporte JUnit. `npm run test:cov` también mide cobertura y falla si cualquiera de los seis servicios queda por debajo del 70 % en líneas, sentencias, funciones o ramas. Los umbrales de `coverageThreshold` están definidos individualmente para AppService, AuthService, EspaciosService, PrismaService, ReservasService y UsuariosService; al agregar otro servicio, agrega su entrada al umbral. La cobertura global incluye controladores, módulos y DTOs, y se informa por separado del requisito de servicios.
+`npm test` genera el reporte JUnit. `npm run test:cov` también mide cobertura y falla si cualquiera de los siete servicios queda por debajo del 70 % en líneas, sentencias, funciones o ramas. Los umbrales de `coverageThreshold` están definidos individualmente para AppService, AuthService, EspaciosService, HealthService, PrismaService, ReservasService y UsuariosService; al agregar otro servicio, agrega su entrada al umbral. La cobertura global incluye controladores, módulos y DTOs, y se informa por separado del requisito de servicios.
 
 Reportes disponibles para publicar como artefactos del pipeline:
 
@@ -377,6 +377,35 @@ En PowerShell puedes usar `npx.cmd prisma db seed` o `npm.cmd run prisma:seed`. 
 Estos nombres y ubicaciones son datos de ejemplo para desarrollo. El script usa `upsert` por nombre de espacio y correo del administrador, dentro de una transacción. Ejecutarlo varias veces conserva ids, contraseñas y cambios existentes en los registros; tampoco reactiva espacios desactivados. Si necesitas cambiar una contraseña existente, usa `PATCH /usuarios/:id`. Cambiar `SEED_ADMIN_CORREO` identifica otra cuenta.
 
 Si el correo ya pertenece a un usuario sin rol ADMIN, el seed falla y revierte la transacción; no cambia su rol. Las variables ausentes o inválidas se rechazan antes de escribir. La contraseña nueva se guarda con bcrypt (costo 12) y el script no muestra contraseñas, hashes ni cadenas de conexión. Los valores de las credenciales solo deben estar en variables de entorno o `.env`, excluido de Git.
+
+### Salud y CORS por ambiente (issue #23)
+
+`GET /health` es público y ejecuta `SELECT 1` en PostgreSQL en cada llamada. Con la base disponible devuelve HTTP 200:
+
+```json
+{
+  "status": "ok",
+  "version": "0123456789abcdef0123456789abcdef01234567",
+  "database": "up"
+}
+```
+
+Si la consulta falla, devuelve HTTP 503 con `status: "error"` y `database: "down"`, conservando `version`. No expone errores de Prisma, cadenas de conexión ni credenciales. Las respuestas llevan `Cache-Control: no-store`. El arranque de la API continúa exigiendo la conexión inicial de Prisma; el 503 informa fallos de la consulta una vez que la aplicación está ejecutándose.
+
+Configura `COMMIT_SHA` con el SHA real de la versión desplegada. El pipeline debe inyectar su commit (`github.sha`) al contenedor o App Settings; en desarrollo, si falta o está vacío, se informa `development`. No se ejecuta Git dentro de la imagen para obtener el valor.
+
+`CORS_ORIGINS` contiene los orígenes del frontend permitidos, separados por comas. Ejemplo local:
+
+```dotenv
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+COMMIT_SHA=development
+```
+
+En Dev/Prod usa únicamente los orígenes HTTP(S) del frontend de cada ambiente. Se recortan espacios, se normalizan puerto/host y una barra final y se eliminan duplicados. No se aceptan comodines, rutas, query strings, fragmentos ni credenciales; una configuración inválida impide el arranque. Si la lista está vacía, se rechazan las solicitudes con `Origin` y se permiten clientes sin ese encabezado, como los smoke tests del pipeline.
+
+Los orígenes ajenos reciben 403, incluidos sus preflight, sin `Access-Control-Allow-Origin`. Los permitidos reciben su origen exacto y pueden usar `Content-Type` y `Authorization`, con métodos GET, HEAD, POST, PUT, PATCH, DELETE y OPTIONS. Los preflight aceptados devuelven 204. CORS usa JWT en el encabezado Authorization y no habilita cookies cross-origin; los guards y permisos continúan aplicándose. Los clientes sin Origin siguen necesitando JWT en las rutas protegidas.
+
+Las dos variables están en `.env.example` y se propagan al servicio API de Compose. La documentación de `/health` está en Swagger, tag `sistema`. Las pruebas cubren 200/503, versión, errores sanitizados, orígenes exactos, rechazos, preflight y conservación del guard JWT; la suite HTTP completa también consulta PostgreSQL real.
 
 ## Variables de entorno
 

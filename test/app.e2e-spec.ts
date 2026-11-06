@@ -43,6 +43,14 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('/health consulta PostgreSQL real y devuelve su estado', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/health')
+      .expect(200);
+    expect(response.body).toMatchObject({ status: 'ok', database: 'up' });
+    expect(response.body).toHaveProperty('version');
+  });
+
   it('inyecta PrismaService y consulta las tres tablas migradas', async () => {
     const prisma = app.get(PrismaService);
     const counts = await prisma.$transaction([
