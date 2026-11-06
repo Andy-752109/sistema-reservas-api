@@ -2,6 +2,7 @@ node_modules/
 src/generated/prisma/
 dist/
 coverage/
+test-results/
 .env
 *.log
 .DS_Store
