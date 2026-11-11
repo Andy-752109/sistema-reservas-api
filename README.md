@@ -173,7 +173,7 @@ npm run start:dev
 
 En PowerShell, usa `Copy-Item .env.example .env` para copiar la configuración. Si la política de ejecución bloquea `npm.ps1`, ejecuta los comandos con `npm.cmd` (por ejemplo, `npm.cmd run start:dev`).
 
-La base de NestJS incluye los módulos `usuarios`, `espacios`, `reservas`, `auth` y `prisma`, y un `ValidationPipe` global con `whitelist: true`. `PrismaModule` exporta `PrismaService`: los módulos que necesiten consultar datos deben importar `PrismaModule` e inyectar el servicio. La conexión se establece durante el arranque de la API; PostgreSQL debe estar disponible. Al cerrar la aplicación se desconecta Prisma. Swagger corresponde al issue #8 y aún no está disponible en `/api/docs`.
+La base de NestJS incluye los módulos `usuarios`, `espacios`, `reservas`, `auth` y `prisma`, y un `ValidationPipe` global con `whitelist: true`. `PrismaModule` exporta `PrismaService`: los módulos que necesiten consultar datos deben importar `PrismaModule` e inyectar el servicio. La conexión se establece durante el arranque de la API; PostgreSQL debe estar disponible. Al cerrar la aplicación se desconecta Prisma. Swagger está disponible en `/api/docs`.
 
 Se fijan `prisma`, `@prisma/client` y `@prisma/adapter-pg` en `7.10.1`. `prisma.config.ts` lee `DATABASE_URL` para las migraciones y `PrismaService` usa `ConfigService` para la conexión de la API. El generador produce un cliente CommonJS en `src/generated/prisma/`, excluido de Git y regenerado en cada instalación. El lockfile se mantiene con npm 10 y se comprueba con `npx npm@10 ci`.
 
@@ -323,6 +323,27 @@ Reportes disponibles para publicar como artefactos del pipeline:
 | `coverage/coverage-final.json` | Detalle de cobertura para herramientas. |
 
 `test-results/` y `coverage/` están excluidos de Git. Los reportes se sobrescriben en cada ejecución unitaria. Las pruebas e2e conservan su configuración separada y requieren PostgreSQL con las migraciones aplicadas. La publicación en CI corresponde al issue #9.
+
+### Documentación interactiva (issue #8)
+
+Con PostgreSQL levantado, las migraciones aplicadas y la API ejecutándose:
+
+- Swagger UI: `http://localhost:3000/api/docs`
+- Documento OpenAPI JSON: `http://localhost:3000/api/docs-json`
+- Documento OpenAPI YAML: `http://localhost:3000/api/docs-yaml`
+
+Si cambias `PORT`, usa ese puerto en las URLs. Los endpoints se agrupan en `auth`, `usuarios`, `espacios` y `reservas`; `sistema` contiene la respuesta base `GET /`. Cada operación muestra su acceso, DTOs con ejemplos, respuestas y errores esperados. Los modelos de respuesta de usuarios omiten contraseñas y hashes; las contraseñas de entrada están marcadas como `writeOnly`.
+
+Para probar una ruta protegida:
+
+1. Registra un usuario con `POST /usuarios` si aún no tienes una cuenta.
+2. Ejecuta `POST /login` y copia el valor de `access_token`.
+3. Pulsa **Authorize**, pega únicamente el token (sin escribir `Bearer`) y confirma.
+4. Usa **Try it out** y **Execute** en la operación que quieras probar. Las escrituras ejecutan cambios reales en la base del ambiente abierto.
+
+El token solo habilita los permisos de esa cuenta; las operaciones de ADMIN requieren una cuenta con ese rol. El administrador inicial corresponde al seed del issue #22. La documentación es pública y los guards de las rutas protegidas siguen verificando autenticación y permisos.
+
+`test/swagger.e2e-spec.ts` verifica UI, recursos JSON/YAML, tags, seguridad Bearer, parámetros, campos requeridos/opcionales y respuestas sin hashes. Esta suite reemplaza Prisma y puede ejecutarse sin PostgreSQL con `npm run test:e2e -- --runInBand swagger.e2e-spec.ts`. La suite e2e completa requiere PostgreSQL.
 
 ## Variables de entorno
 
