@@ -233,6 +233,44 @@ Errores previstos: `400` para DTOs o ids no enteros inválidos, `401` para crede
 
 Las pruebas unitarias de `AuthService` usan bcrypt real y dobles de Prisma/JWT. Las pruebas e2e usan PostgreSQL y crean usuarios con correos únicos; al terminar eliminan únicamente sus propios usuarios. Para ejecutarlas en una base dedicada, define `DATABASE_URL`, aplica `npm run prisma:deploy` y ejecuta `npm run test:e2e -- --runInBand`. Incluyen registro, login, DTOs, permisos, cambios de contraseña, degradación de roles y tokens de usuarios eliminados.
 
+### Espacios y disponibilidad (issue #5)
+
+| Método y ruta | Acceso | Resultado |
+|---------------|--------|-----------|
+| `GET /espacios?tipo=CUBICULO` | Público | Lista espacios activos; `tipo` es opcional (200). |
+| `GET /espacios/:id` | Público | Consulta un espacio activo (200). |
+| `POST /espacios` | ADMIN | Crea un espacio (201). |
+| `PUT /espacios/:id` | ADMIN | Actualiza un espacio, incluso para reactivarlo (200). |
+| `DELETE /espacios/:id` | ADMIN | Elimina sin reservas o desactiva si tiene cualquier reserva (200). |
+| `GET /espacios/:id/disponibilidad?fecha=YYYY-MM-DD` | Público | Devuelve los intervalos libres de esa fecha (200). |
+
+POST y PUT reciben `nombre`, `tipo`, `capacidad` (entero positivo), `ubicacion` y opcionalmente `activo` (booleano). PUT requiere todos los campos obligatorios; `tipo` se normaliza a mayúsculas. Los nombres duplicados reciben `409`, los datos inválidos `400`, y los ids inexistentes `404`. Los espacios inactivos tampoco se exponen por las consultas públicas.
+
+DELETE devuelve `{ "id": 1, "accion": "eliminado" }` si no hay reservas. Si existe cualquier reserva, incluida una cancelada o finalizada, conserva el espacio y el historial, establece `activo=false` y devuelve `accion: "desactivado"`. La clave foránea evita borrar un espacio si una reserva se inserta concurrentemente; en ese caso también se desactiva.
+
+La disponibilidad interpreta `fecha` en `ESPACIOS_ZONA_HORARIA` (por defecto `America/Mexico_City`), con horario diario `ESPACIOS_HORA_APERTURA=07:00` y `ESPACIOS_HORA_CIERRE=21:00`. Los horarios usan `HH:mm`, apertura anterior al cierre y no cruzan medianoche. La zona debe ser IANA válida; una configuración inválida impide el arranque. Una fecha imposible o un límite horario inexistente/ambiguo por cambios de horario recibe `400`.
+
+Ejemplo sin reservas:
+
+```json
+{
+  "espacioId": 1,
+  "fecha": "2026-11-10",
+  "zonaHoraria": "America/Mexico_City",
+  "horario": {
+    "inicio": "2026-11-10T07:00:00.000-06:00",
+    "fin": "2026-11-10T21:00:00.000-06:00"
+  },
+  "bloquesLibres": [
+    { "inicio": "2026-11-10T07:00:00.000-06:00", "fin": "2026-11-10T21:00:00.000-06:00" }
+  ]
+}
+```
+
+Los bloques son intervalos continuos máximos `[inicio, fin)`, sin duración fija, expresados en ISO 8601 con offset. Se descuentan solo reservas ACTIVAS que se traslapen con el horario; las contiguas/superpuestas se unen y se recortan a los límites. Si está totalmente ocupado, `bloquesLibres` es `[]`. La respuesta no expone usuarios ni detalles de reservas. Es una consulta de disponibilidad; la validación definitiva al reservar corresponde al issue #6.
+
+Las variables nuevas están en `.env.example` y se propagan al servicio API de Compose. Las pruebas unitarias cubren intervalos, fechas, zonas y cambios de horario; las pruebas HTTP cubren filtros, permisos, validación, reservas canceladas/finalizadas y desactivación con historial.
+
 ## Variables de entorno
 
 | Variable | Descripción | Ejemplo |
