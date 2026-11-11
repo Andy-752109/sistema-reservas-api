@@ -227,7 +227,7 @@ Ejemplo de registro:
 
 Envía el token como `Authorization: Bearer <access_token>`. El JWT incluye `sub` (id del usuario), `rol`, `iat` y `exp`; se firma con HS256 usando `JWT_SECRET` y vence según `JWT_EXPIRES_IN` (por defecto `1h`). Configura un secreto propio en `.env` antes de usar autenticación; el valor de `.env.example` es solo un marcador. Si falta `JWT_SECRET`, la aplicación no arranca.
 
-Los guards consultan el usuario y su rol vigente en la base de datos: un usuario eliminado pierde acceso y un cambio de rol se aplica aunque el token aún conserve el rol anterior. Cambiar la contraseña no revoca tokens ya emitidos; estos conservan su expiración. El registro público ignora el campo `rol` y siempre crea estudiantes. La creación inicial del administrador corresponde al seed del issue #22; este issue no crea cuentas predeterminadas.
+Los guards consultan el usuario y su rol vigente en la base de datos: un usuario eliminado pierde acceso y un cambio de rol se aplica aunque el token aún conserve el rol anterior. Cambiar la contraseña no revoca tokens ya emitidos; estos conservan su expiración. El registro público ignora el campo `rol` y siempre crea estudiantes. El seed del issue #22 permite crear el administrador inicial con credenciales propias, sin cuentas ni contraseñas predeterminadas.
 
 Errores previstos: `400` para DTOs o ids no enteros inválidos, `401` para credenciales o tokens inválidos/expirados, `403` para falta de permisos, `404` para usuarios no encontrados y `409` para correo duplicado. Los campos ajenos al DTO se eliminan mediante `whitelist`.
 
@@ -344,6 +344,39 @@ Para probar una ruta protegida:
 El token solo habilita los permisos de esa cuenta; las operaciones de ADMIN requieren una cuenta con ese rol. El administrador inicial corresponde al seed del issue #22. La documentación es pública y los guards de las rutas protegidas siguen verificando autenticación y permisos.
 
 `test/swagger.e2e-spec.ts` verifica UI, recursos JSON/YAML, tags, seguridad Bearer, parámetros, campos requeridos/opcionales y respuestas sin hashes. Esta suite reemplaza Prisma y puede ejecutarse sin PostgreSQL con `npm run test:e2e -- --runInBand swagger.e2e-spec.ts`. La suite e2e completa requiere PostgreSQL.
+
+### Datos de ejemplo y administrador (issue #22)
+
+El comando de seed crea seis espacios de ejemplo y un administrador con las credenciales que configures. Antes de ejecutarlo, configura `DATABASE_URL` para la base de destino y completa en tu `.env` privado:
+
+| Variable | Requisito |
+|----------|-----------|
+| `SEED_ADMIN_CORREO` | Obligatorio; correo válido, normalizado a minúsculas. |
+| `SEED_ADMIN_CONTRASENA` | Obligatoria; mínimo 8 caracteres y máximo 72 bytes UTF-8. |
+| `SEED_ADMIN_NOMBRE` | Opcional; por defecto `Administrador`, entre 1 y 100 caracteres. |
+
+```bash
+docker compose up -d --wait db
+npm run prisma:deploy
+npx prisma db seed
+# Alternativa equivalente:
+npm run prisma:seed
+```
+
+En PowerShell puedes usar `npx.cmd prisma db seed` o `npm.cmd run prisma:seed`. El seed se ejecuta explícitamente; instalar dependencias y aplicar migraciones no lo ejecuta. Usa el cliente generado por `npm ci` y `ts-node`, ya disponible en las dependencias de desarrollo.
+
+| Espacio de ejemplo | Tipo | Capacidad |
+|--------------------|------|-----------|
+| Cubículo Biblioteca 1 | CUBICULO | 4 |
+| Cubículo Biblioteca 2 | CUBICULO | 6 |
+| Laboratorio de Cómputo 1 | LABORATORIO | 30 |
+| Laboratorio de Cómputo 2 | LABORATORIO | 24 |
+| Cancha de Fútbol | CANCHA | 22 |
+| Cancha de Básquetbol | CANCHA | 10 |
+
+Estos nombres y ubicaciones son datos de ejemplo para desarrollo. El script usa `upsert` por nombre de espacio y correo del administrador, dentro de una transacción. Ejecutarlo varias veces conserva ids, contraseñas y cambios existentes en los registros; tampoco reactiva espacios desactivados. Si necesitas cambiar una contraseña existente, usa `PATCH /usuarios/:id`. Cambiar `SEED_ADMIN_CORREO` identifica otra cuenta.
+
+Si el correo ya pertenece a un usuario sin rol ADMIN, el seed falla y revierte la transacción; no cambia su rol. Las variables ausentes o inválidas se rechazan antes de escribir. La contraseña nueva se guarda con bcrypt (costo 12) y el script no muestra contraseñas, hashes ni cadenas de conexión. Los valores de las credenciales solo deben estar en variables de entorno o `.env`, excluido de Git.
 
 ## Variables de entorno
 
