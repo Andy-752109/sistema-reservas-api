@@ -1,0 +1,100 @@
+# CI del backend: se ejecuta en cada PR hacia develop o main y en cada push a main.
+# Sin filtro de rutas: si este check pasa a ser obligatorio (#63), un workflow
+# que no se ejecuta dejaría el PR esperando para siempre.
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write # dorny/test-reporter publica los resultados como check
+
+jobs:
+  build-test:
+    name: Build y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # PostgreSQL para las pruebas e2e (mismas credenciales que docker-compose).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: reservas
+          POSTGRES_PASSWORD: reservas
+          POSTGRES_DB: reservas_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reservas -d reservas_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://reservas:reservas@localhost:5432/reservas_db?schema=public
+      JWT_SECRET: secreto-solo-para-ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Falla si algún servicio queda debajo del 70 % (coverageThreshold).
+      - name: Pruebas unitarias con cobertura
+        run: >-
+          npm run test:cov -- --ci
+          --coverageReporters=text --coverageReporters=lcov --coverageReporters=json-summary
+
+      - name: Migraciones en la base de pruebas
+        run: npm run prisma:deploy
+
+      - name: Pruebas e2e
+        run: npm run test:e2e -- --ci --runInBand --reporters=default --reporters=jest-junit
+        env:
+          JEST_JUNIT_OUTPUT_DIR: test-results
+          JEST_JUNIT_OUTPUT_NAME: junit-e2e.xml
+
+      - name: Build
+        run: npm run build
+
+      - name: Resumen de cobertura
+        if: ${{ !cancelled() && hashFiles('coverage/coverage-summary.json') != '' }}
+        run: node .github/scripts/resumen-cobertura.js >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar resultados de pruebas
+        if: ${{ !cancelled() && hashFiles('test-results/*.xml') != '' }}
+        uses: dorny/test-reporter@v2
+        with:
+          name: Resultados de pruebas (Jest)
+          path: test-results/*.xml
+          reporter: jest-junit
+
+      - name: Subir reportes
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-pruebas
+          path: |
+            coverage/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
