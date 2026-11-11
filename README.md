@@ -302,6 +302,28 @@ Errores previstos: `400` para DTOs, fechas, intervalos, ids inválidos o espacio
 
 Las pruebas incluyen reservas contiguas, traslapes parciales/contenidos/envolventes, exclusión de la propia reserva, permisos, cambios de espacio y cancelación sin borrado. Las pruebas de concurrencia levantan dos instancias de NestJS conectadas a PostgreSQL: creación/creación, actualización/creación, actualización/actualización y cancelación/actualización.
 
+### Pruebas unitarias y reportes (issue #7)
+
+Las pruebas `src/**/*.spec.ts` usan Prisma simulado y no requieren PostgreSQL, Docker ni migraciones aplicadas. En `PrismaService` se reemplazan los métodos de conexión/desconexión para probar el ciclo de vida y la propagación de errores sin abrir conexiones. Los casos de reservas simulan los resultados de Prisma y verifican los filtros estrictos de traslape, estado ACTIVA, espacio y exclusión de la propia reserva; la ejecución real del SQL y la concurrencia se comprueban en las pruebas e2e.
+
+```bash
+npm test -- --runInBand
+npm run test:cov -- --runInBand
+```
+
+`npm test` genera el reporte JUnit. `npm run test:cov` también mide cobertura y falla si cualquiera de los seis servicios queda por debajo del 70 % en líneas, sentencias, funciones o ramas. Los umbrales de `coverageThreshold` están definidos individualmente para AppService, AuthService, EspaciosService, PrismaService, ReservasService y UsuariosService; al agregar otro servicio, agrega su entrada al umbral. La cobertura global incluye controladores, módulos y DTOs, y se informa por separado del requisito de servicios.
+
+Reportes disponibles para publicar como artefactos del pipeline:
+
+| Archivo | Contenido |
+|---------|-----------|
+| `test-results/junit.xml` | Resultados unitarios compatibles con JUnit, generados por `jest-junit`. |
+| `coverage/lcov.info` | Cobertura en formato LCOV. |
+| `coverage/lcov-report/index.html` | Informe HTML navegable. |
+| `coverage/coverage-final.json` | Detalle de cobertura para herramientas. |
+
+`test-results/` y `coverage/` están excluidos de Git. Los reportes se sobrescriben en cada ejecución unitaria. Las pruebas e2e conservan su configuración separada y requieren PostgreSQL con las migraciones aplicadas. La publicación en CI corresponde al issue #9.
+
 ## Variables de entorno
 
 | Variable | Descripción | Ejemplo |
