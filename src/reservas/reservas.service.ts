@@ -116,7 +116,7 @@ export class ReservasService {
       inicio.toMillis() >= fin.toMillis()
     ) {
       throw new BadRequestException(
-        'Usa fechas ISO 8601 con zona horaria explÃ­cita e inicio anterior a fin',
+        'Usa fechas ISO 8601 con zona horaria explícita e inicio anterior a fin',
       );
     }
     return { inicio: inicio.toJSDate(), fin: fin.toJSDate() };
@@ -126,14 +126,14 @@ export class ReservasService {
     tx: Prisma.TransactionClient,
     espacioId: number,
   ): Promise<void> {
-    // Serializa la validaciÃ³n y escritura de reservas del mismo espacio.
-    // READ COMMITTED permite ver la reserva que confirmÃ³ el titular anterior.
+    // Serializa la validación y escritura de reservas del mismo espacio.
+    // READ COMMITTED permite ver la reserva que confirmó el titular anterior.
     const espacios = await tx.$queryRaw<
       { id: number; activo: boolean }[]
     >`SELECT id, activo FROM espacios WHERE id = ${espacioId} FOR NO KEY UPDATE`;
     if (!espacios.length) throw new NotFoundException('Espacio no encontrado');
     if (!espacios[0].activo)
-      throw new BadRequestException('El espacio estÃ¡ inactivo');
+      throw new BadRequestException('El espacio está inactivo');
   }
 
   private async lockReserva(
@@ -153,8 +153,6 @@ export class ReservasService {
 
   private validateId(id: number): void {
     if (!Number.isInteger(id) || id < 1 || id > 2147483647)
-      throw new BadRequestException(
-        'El id debe ser un entero positivo vÃ¡lido',
-      );
+      throw new BadRequestException('El id debe ser un entero positivo válido');
   }
 }

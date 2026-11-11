@@ -193,6 +193,19 @@ describe('ReservasService: reglas de negocio con Prisma simulado', () => {
     expect(db.create).not.toHaveBeenCalled();
   });
 
+  it('devuelve los mensajes de error con acentos en UTF-8', async () => {
+    raw.mockResolvedValueOnce([{ id: 2, activo: false }]);
+    await expect(service.crear(dto(), owner)).rejects.toThrow(
+      'El espacio está inactivo',
+    );
+    await expect(service.crear(dto('12:00', '10:00'), owner)).rejects.toThrow(
+      'Usa fechas ISO 8601 con zona horaria explícita e inicio anterior a fin',
+    );
+    await expect(service.cancelar(0, owner)).rejects.toThrow(
+      'El id debe ser un entero positivo válido',
+    );
+  });
+
   it('lista reservas propias y permite a ADMIN consultar todas', async () => {
     await service.listar(owner);
     expect(db.findMany).toHaveBeenLastCalledWith({
