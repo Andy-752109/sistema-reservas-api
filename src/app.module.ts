@@ -8,6 +8,7 @@ import { ReservasModule } from './reservas/reservas.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AppService } from './app.service';
     ReservasModule,
     AuthModule,
     PrismaModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [
