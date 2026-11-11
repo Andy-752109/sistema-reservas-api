@@ -154,19 +154,20 @@ cd sistema-reservas-api
 # 2. Variables de entorno
 cp .env.example .env
 
-# 3. Levantar PostgreSQL local
-docker compose up -d
+# 3. Instalar dependencias con las versiones del lockfile
+npm ci
 
-# 4. Instalar dependencias y aplicar migraciones de Prisma
-npm install
-npx prisma migrate dev --name init
-
-# 5. Ejecutar la API en modo desarrollo
+# 4. Ejecutar la API en modo desarrollo
 npm run start:dev
 ```
 
 - API: <http://localhost:3000>
-- Swagger: <http://localhost:3000/api/docs>
+- `GET /` responde `Hello World!` para verificar el arranque.
+- `PORT` se lee del entorno o de `.env`; si no está definido, se usa `3000`.
+
+En PowerShell, usa `Copy-Item .env.example .env` para copiar la configuración. Si la política de ejecución bloquea `npm.ps1`, ejecuta los comandos con `npm.cmd` (por ejemplo, `npm.cmd run start:dev`).
+
+**Estado del issue #1:** la base de NestJS incluye los módulos `usuarios`, `espacios`, `reservas`, `auth` y `prisma`, y un `ValidationPipe` global con `whitelist: true`. Los módulos están vacíos; la API puede arrancar sin PostgreSQL. La conexión con Prisma y las migraciones corresponden al issue #2; Swagger corresponde al issue #8 y aún no está disponible en `/api/docs`.
 
 Para levantar la base de datos y la API en contenedores (cuando exista el `Dockerfile`):
 
@@ -179,7 +180,15 @@ Pruebas:
 ```bash
 npm test          # pruebas unitarias
 npm run test:cov  # cobertura
+npm run test:e2e  # arranque HTTP y validación global
+npm run lint      # revisión con ESLint, sin modificar archivos
+npm run format    # formato de src/ y test/ con Prettier
+npm run build     # compila en dist/
 ```
+
+Después de compilar, `npm run start:prod` ejecuta `dist/main.js`.
+
+El `override` de Multer en `package.json` mantiene la dependencia transitiva de `@nestjs/platform-express` en la versión corregida `2.5.x` o posterior dentro de la versión mayor 2 (GHSA-q7qp-rjg7-q26m).
 
 ## Variables de entorno
 
