@@ -16,7 +16,7 @@ concurrency:
 
 permissions:
   contents: read
-  checks: write # dorny/test-reporter publica los resultados como check
+  checks: write # dorny/test-reporter (los resultados quedan en el resumen del run)
 
 jobs:
   build-test:
@@ -45,9 +45,9 @@ jobs:
       JWT_SECRET: secreto-solo-para-ci
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -82,7 +82,7 @@ jobs:
 
       - name: Publicar resultados de pruebas
         if: ${{ !cancelled() && hashFiles('test-results/*.xml') != '' }}
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         with:
           name: Resultados de pruebas (Jest)
           path: test-results/*.xml
@@ -90,7 +90,7 @@ jobs:
 
       - name: Subir reportes
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reportes-pruebas
           path: |
