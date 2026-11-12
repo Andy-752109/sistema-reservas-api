@@ -1,0 +1,44 @@
+# CD de la API: cada liberación a main pasa por pruebas, imagen Docker,
+# despliegue a Dev y, con aprobación manual (environment production), a Prod.
+# Prod recibe la misma imagen (tag del SHA) que se probó en Dev.
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Una liberación a la vez; nunca se cancela un despliegue a medias.
+concurrency:
+  group: cd-api
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  checks: write # pruebas (dorny/test-reporter)
+  id-token: write # azure/login con OIDC
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  docker:
+    needs: test
+    uses: ./.github/workflows/docker.yml
+    secrets: inherit
+
+  deploy-dev:
+    needs: docker
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ambiente: development
+      imagen: ${{ needs.docker.outputs.imagen }}
+    secrets: inherit
+
+  deploy-prod:
+    needs: [docker, deploy-dev]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ambiente: production
+      imagen: ${{ needs.docker.outputs.imagen }}
+    secrets: inherit
