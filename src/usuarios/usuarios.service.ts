@@ -86,6 +86,14 @@ export class UsuariosService {
     try {
       await this.prisma.usuario.delete({ where: { id } });
     } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'No se puede eliminar un usuario con reservas; se conserva su historial',
+        );
+      }
       this.handleError(error);
     }
   }

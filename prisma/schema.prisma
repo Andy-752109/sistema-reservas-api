@@ -77,7 +77,7 @@ model Reserva {
   creadoEn      DateTime      @default(now()) @map("creado_en")
   actualizadoEn DateTime      @updatedAt @map("actualizado_en")
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
   espacio Espacio @relation(fields: [espacioId], references: [id], onDelete: Restrict)
 
   // Acelera la búsqueda de traslapes y la consulta de disponibilidad por fecha.

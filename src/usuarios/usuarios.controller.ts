@@ -23,13 +23,17 @@ import { UsuariosService } from './usuarios.service';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiConflictResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiErrors, ApiIdParam } from '../common/api-docs.decorators';
-import { UsuarioResponseDto } from '../common/dto/api-responses.dto';
+import {
+  ApiErrorResponseDto,
+  UsuarioResponseDto,
+} from '../common/dto/api-responses.dto';
 
 @Controller('usuarios')
 @ApiTags('usuarios')
@@ -101,10 +105,15 @@ export class UsuariosController {
   @ApiOperation({
     summary: 'Eliminar un usuario',
     description:
-      'Solo ADMIN. Sus tokens dejan de ser válidos. Las reservas del usuario se eliminan en cascada conforme al modelo actual.',
+      'Solo ADMIN. Elimina únicamente usuarios sin reservas y sus tokens dejan de ser válidos. Si tiene reservas ACTIVAS, CANCELADAS o FINALIZADAS, responde 409 y conserva el usuario y todo su historial.',
   })
   @ApiNoContentResponse({
     description: 'Usuario eliminado; respuesta sin cuerpo.',
+  })
+  @ApiConflictResponse({
+    description:
+      'El usuario tiene reservas; se conservan el usuario y su historial sin cambios.',
+    type: ApiErrorResponseDto,
   })
   @ApiErrors(400, 401, 403, 404)
   @UseGuards(JwtAuthGuard, RolesGuard)
