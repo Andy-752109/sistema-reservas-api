@@ -45,16 +45,18 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # /health la devuelve como "version": el smoke test confirma que corre este commit.
-      - name: Registrar la versión (COMMIT_SHA)
-        run: az webapp config appsettings set -g "$RG" -n "$APP" --settings "COMMIT_SHA=${GITHUB_SHA}" -o none
-
       # Al arrancar, el contenedor aplica prisma migrate deploy contra la base del ambiente.
       - name: Desplegar la imagen
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.API_WEBAPP_NAME }}
           images: ${{ inputs.imagen }}
+
+      # /health la devuelve como "version". Va después del despliegue: si fuera antes,
+      # Azure reiniciaría con la imagen vieja y el SHA nuevo, y el smoke test pasaría
+      # aunque la imagen nueva no arrancara.
+      - name: Registrar la versión (COMMIT_SHA)
+        run: az webapp config appsettings set -g "$RG" -n "$APP" --settings "COMMIT_SHA=${GITHUB_SHA}" -o none
 
       - name: Smoke test
         env:
