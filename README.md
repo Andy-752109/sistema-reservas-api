@@ -91,7 +91,7 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 | Contenedores | Docker (build multi-stage), Docker Hub |
 | CI/CD | GitHub Actions |
 | Frontend | React + TypeScript + Vite (repo `sistema-reservas-web`) |
-| Infraestructura como código | Terraform (carpeta `infra/` de este repo) |
+| Infraestructura como código | Terraform (repo [`sistema-reservas-infra`](https://github.com/Andy-752109/sistema-reservas-infra)) |
 | Nube | Microsoft Azure: App Service, Azure Database for PostgreSQL, Application Insights |
 | Gestión | GitHub Projects |
 
@@ -101,12 +101,13 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 Desarrollador → GitHub → GitHub Actions → Pruebas unitarias → Docker → Docker Hub → Azure → PostgreSQL
 ```
 
-El sistema se reparte en dos repositorios:
+El sistema se reparte en tres repositorios:
 
 | Repositorio | Contenido |
 |-------------|-----------|
-| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile, pipelines del backend y Terraform en `infra/`. |
+| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile y pipelines del backend. Aquí viven los issues de los tres repos. |
 | [`sistema-reservas-web`](https://github.com/Andy-752109/sistema-reservas-web) | Frontend React + TypeScript + Vite y sus pipelines. |
+| [`sistema-reservas-infra`](https://github.com/Andy-752109/sistema-reservas-infra) | Terraform: crea los recursos de Azure de Dev y Prod. Los pipelines de API y web despliegan sobre esos recursos. |
 
 Recursos en Azure (Resource Group `reservas-rg`), creados con Terraform, con dos ambientes: **Dev** y **Prod**.
 
@@ -477,7 +478,6 @@ sistema-reservas-api/
 │   ├── prisma/            # PrismaService
 │   └── main.ts            # Bootstrap + Swagger
 ├── test/                  # Pruebas
-├── infra/                 # Terraform: recursos de Azure para Dev y Prod
 ├── Dockerfile             # Build multi-stage
 ├── docker-compose.yml     # PostgreSQL local (+ API opcional)
 ├── .env.example
@@ -516,7 +516,9 @@ Los roles indican quién responde por cada área; la documentación se reparte p
 | Rol | Responsable | Área | Revisa los PR de | Tareas | Puntos |
 |-----|-------------|------|------------------|--------|--------|
 | Backend | Ramiro | API, base de datos y pruebas | Frontend | 14 | 26 |
-| Frontend | Ale | Aplicación web y sus pipelines | DevOps e infra | 14 | 27 |
-| DevOps e infra | Andy | Docker, CI/CD, Terraform y tablero | Backend | 15 | 27 |
+| Frontend | Ale | Aplicación web, CI del web, Wiki de deployment y tablero | DevOps e infra | 14 | 26 |
+| DevOps e infra | Andy | Docker y despliegue de API y web, CI/CD y Terraform | Backend | 15 | 28 |
 
 Los puntos son una estimación inicial y cuentan una tarea opcional de Frontend (#58, 2 puntos). Al terminar cada fase, el equipo compara los puntos y mueve tareas si alguien va más cargado.
+
+**Ajuste del 11 nov 2026:** Andy toma el Dockerfile (#32) y el CD (#53) del web, que siguen el mismo patrón que los de la API; Ale toma la Wiki de deployment (#19) y el tablero (#65) y se concentra en las pantallas.
