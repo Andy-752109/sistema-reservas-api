@@ -514,7 +514,9 @@ Los roles indican quién responde por cada área; la documentación se reparte p
 | Rol | Responsable | Área | Revisa los PR de | Tareas | Puntos |
 |-----|-------------|------|------------------|--------|--------|
 | Backend | Ramiro | API, base de datos y pruebas | Frontend | 14 | 26 |
-| Frontend | Ale | Aplicación web y sus pipelines | DevOps e infra | 14 | 27 |
-| DevOps e infra | Andy | Docker, CI/CD, Terraform y tablero | Backend | 15 | 27 |
+| Frontend | Ale | Aplicación web, CI del web, Wiki de deployment y tablero | DevOps e infra | 14 | 26 |
+| DevOps e infra | Andy | Docker y despliegue de API y web, CI/CD y Terraform | Backend | 15 | 28 |
 
 Los puntos son una estimación inicial y cuentan una tarea opcional de Frontend (#58, 2 puntos). Al terminar cada fase, el equipo compara los puntos y mueve tareas si alguien va más cargado.
+
+**Ajuste del 11 nov 2026:** Andy toma el Dockerfile (#32) y el CD (#53) del web, que siguen el mismo patrón que los de la API; Ale toma la Wiki de deployment (#19) y el tablero (#65) y se concentra en las pantallas.
