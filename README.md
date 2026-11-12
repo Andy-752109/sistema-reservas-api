@@ -181,11 +181,13 @@ Se fijan `prisma`, `@prisma/client` y `@prisma/adapter-pg` en `7.10.1`. `prisma.
 
 Los datos locales persisten en el volumen `pgdata`. `docker compose down` detiene el entorno sin borrar ese volumen. Si cambias `POSTGRES_PORT`, actualiza también el puerto de `DATABASE_URL` en tu `.env`. No versiones ese archivo.
 
-Para levantar la base de datos y la API en contenedores (cuando exista el `Dockerfile`):
+Para levantar la base de datos y la API en contenedores:
 
 ```bash
 docker compose --profile full up -d --build
 ```
+
+La imagen (`Dockerfile` multi-stage sobre `node:22-alpine`) compila en una etapa y en la final deja solo `dist/`, las dependencias de producción, el esquema y las migraciones. Corre como el usuario `node` y escucha en `PORT` (3000). Al arrancar, `docker-entrypoint.sh` ejecuta `prisma migrate deploy` y luego la API, así que la base del ambiente queda migrada en cada despliegue; por eso `prisma` y `dotenv` están en `dependencies`.
 
 Pruebas:
 
