@@ -44,6 +44,8 @@ El sistema reúne en un solo lugar el catálogo de espacios y sus horarios, **im
 **Incluye:** registro e inicio de sesión, catálogo de espacios y reservas con validación de traslapes.
 **No incluye:** pagos, notificaciones por correo ni aplicación móvil.
 
+Las páginas de Inicio y Descripción para la Wiki se revisan en [docs/wiki/](docs/wiki/README.md). Allí se indica cómo publicarlas y qué enlaces Dev/Prod faltan por confirmar; guardar los archivos en este repositorio no publica automáticamente la Wiki.
+
 ## Modelo de dominio
 
 ```
