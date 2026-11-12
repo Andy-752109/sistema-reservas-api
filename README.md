@@ -214,7 +214,7 @@ El `override` de Multer en `package.json` mantiene la dependencia transitiva de 
 | `GET /usuarios` | ADMIN | Lista perfiles sin hashes (200). |
 | `GET /usuarios/:id` | ADMIN o el propio usuario | Consulta un perfil (200). |
 | `PATCH /usuarios/:id` | ADMIN o el propio usuario | Actualiza el perfil (200); solo ADMIN puede cambiar `rol`. |
-| `DELETE /usuarios/:id` | ADMIN | Elimina el usuario (204, sin cuerpo). |
+| `DELETE /usuarios/:id` | ADMIN | Elimina si no tiene reservas (204, sin cuerpo); si tiene cualquier reserva, devuelve 409 y conserva el historial. |
 
 El registro recibe `nombre`, `correo` y `contrasena`. El login recibe `correo` y `contrasena`. `PATCH` acepta cualquiera de esos campos y `rol` (`ESTUDIANTE`, `DOCENTE`, `ADMIN`), sujeto a los permisos anteriores. Nombre y correo se recortan; el correo se normaliza a minúsculas. La contraseña requiere al menos 8 caracteres y como máximo 72 bytes UTF-8 (límite de bcrypt); se almacena con bcrypt, costo 12. Nunca se devuelve la contraseña ni su hash.
 
@@ -232,7 +232,9 @@ Envía el token como `Authorization: Bearer <access_token>`. El JWT incluye `sub
 
 Los guards consultan el usuario y su rol vigente en la base de datos: un usuario eliminado pierde acceso y un cambio de rol se aplica aunque el token aún conserve el rol anterior. Cambiar la contraseña no revoca tokens ya emitidos; estos conservan su expiración. El registro público ignora el campo `rol` y siempre crea estudiantes. El seed del issue #22 permite crear el administrador inicial con credenciales propias, sin cuentas ni contraseñas predeterminadas.
 
-Errores previstos: `400` para DTOs o ids no enteros inválidos, `401` para credenciales o tokens inválidos/expirados, `403` para falta de permisos, `404` para usuarios no encontrados y `409` para correo duplicado. Los campos ajenos al DTO se eliminan mediante `whitelist`.
+Errores previstos: `400` para DTOs o ids no enteros inválidos, `401` para credenciales o tokens inválidos/expirados, `403` para falta de permisos, `404` para usuarios no encontrados y `409` para correo duplicado o al intentar eliminar un usuario con reservas. Los campos ajenos al DTO se eliminan mediante `whitelist`.
+
+`DELETE /usuarios/:id` conserva al usuario y todas sus reservas si existe alguna, sea `ACTIVA`, `CANCELADA` o `FINALIZADA`; responde `409` con el mensaje `No se puede eliminar un usuario con reservas; se conserva su historial`. La clave foránea usa `ON DELETE RESTRICT`, por lo que también protege el historial ante operaciones concurrentes y eliminaciones directas en la base. El usuario retenido mantiene su acceso; únicamente la eliminación exitosa (204) invalida sus tokens. La migración nueva del issue #88 se instala con `npm run prisma:deploy`, sin modificar la migración inicial.
 
 Las pruebas unitarias de `AuthService` usan bcrypt real y dobles de Prisma/JWT. Las pruebas e2e usan PostgreSQL y crean usuarios con correos únicos; al terminar eliminan únicamente sus propios usuarios. Para ejecutarlas en una base dedicada, define `DATABASE_URL`, aplica `npm run prisma:deploy` y ejecuta `npm run test:e2e -- --runInBand`. Incluyen registro, login, DTOs, permisos, cambios de contraseña, degradación de roles y tokens de usuarios eliminados.
 

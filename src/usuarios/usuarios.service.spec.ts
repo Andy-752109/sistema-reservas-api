@@ -114,6 +114,20 @@ describe('UsuariosService', () => {
     expect(query.select?.contrasena).not.toBe(true);
   });
 
+  it('responde 409 cuando la base impide borrar un usuario con reservas', async () => {
+    db.delete.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Clave foránea', {
+        code: 'P2003',
+        clientVersion: 'test',
+      }),
+    );
+    await expect(service.eliminar(1)).rejects.toThrow(
+      new ConflictException(
+        'No se puede eliminar un usuario con reservas; se conserva su historial',
+      ),
+    );
+  });
+
   it('elimina un usuario y propaga errores desconocidos de la base', async () => {
     await expect(service.eliminar(1)).resolves.toBeUndefined();
     const error = new Error('Conexión interrumpida');

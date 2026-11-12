@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
-import { Rol } from '../src/generated/prisma/enums';
+import { EstadoReserva, Rol } from '../src/generated/prisma/enums';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 interface PublicUser {
@@ -27,6 +27,7 @@ describe('Usuarios y autenticación (e2e con PostgreSQL)', () => {
   let token: string;
   let adminToken: string;
   const createdIds: number[] = [];
+  const spaceIds: number[] = [];
   const prefix = randomUUID();
   const password = 'ClaveSegura123!';
 
@@ -83,6 +84,10 @@ describe('Usuarios y autenticación (e2e con PostgreSQL)', () => {
   afterAll(async () => {
     try {
       if (prisma && createdIds.length) {
+        await prisma.reserva.deleteMany({
+          where: { usuarioId: { in: createdIds } },
+        });
+        await prisma.espacio.deleteMany({ where: { id: { in: spaceIds } } });
         await prisma.usuario.deleteMany({ where: { id: { in: createdIds } } });
       }
     } finally {
@@ -287,7 +292,61 @@ describe('Usuarios y autenticación (e2e con PostgreSQL)', () => {
       .expect(401);
   });
 
-  it('ADMIN elimina usuarios y sus tokens dejan de ser válidos', async () => {
+  it.each(Object.values(EstadoReserva))(
+    'impide eliminar usuarios con reservas %s y conserva todo su historial',
+    async (estado) => {
+      const fresh = await registrar(`historial-${estado}`);
+      const freshToken = await login(fresh.correo);
+      const espacio = await prisma.espacio.create({
+        data: {
+          nombre: `${prefix}-${estado}`,
+          tipo: 'CUBICULO',
+          capacidad: 4,
+          ubicacion: 'Prueba historial',
+        },
+      });
+      spaceIds.push(espacio.id);
+      const reserva = await prisma.reserva.create({
+        data: {
+          usuarioId: fresh.id,
+          espacioId: espacio.id,
+          inicio: new Date('2026-11-10T15:00:00Z'),
+          fin: new Date('2026-11-10T16:00:00Z'),
+          estado,
+        },
+      });
+      const originalUser = await prisma.usuario.findUniqueOrThrow({
+        where: { id: fresh.id },
+      });
+
+      // Protege incluso si se omite la API o se inserta una reserva concurrente.
+      await expect(
+        prisma.usuario.delete({ where: { id: fresh.id } }),
+      ).rejects.toMatchObject({ code: 'P2003' });
+
+      const response = await api()
+        .delete(`/usuarios/${fresh.id}`)
+        .auth(adminToken, { type: 'bearer' })
+        .expect(409);
+      expect(response.body).toMatchObject({
+        statusCode: 409,
+        message:
+          'No se puede eliminar un usuario con reservas; se conserva su historial',
+      });
+      expect(
+        await prisma.usuario.findUnique({ where: { id: fresh.id } }),
+      ).toEqual(originalUser);
+      expect(
+        await prisma.reserva.findMany({ where: { usuarioId: fresh.id } }),
+      ).toEqual([reserva]);
+      await api()
+        .get(`/usuarios/${fresh.id}`)
+        .auth(freshToken, { type: 'bearer' })
+        .expect(200);
+    },
+  );
+
+  it('ADMIN elimina usuarios sin reservas y sus tokens dejan de ser válidos', async () => {
     const fresh = await registrar('eliminar');
     const freshToken = await login(fresh.correo);
     await api()

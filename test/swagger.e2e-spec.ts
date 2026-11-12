@@ -133,6 +133,10 @@ describe('Swagger/OpenAPI (sin PostgreSQL)', () => {
     expect(
       document.paths['/usuarios/{id}'].delete?.responses['200'],
     ).toBeUndefined();
+    const userConflict = document.paths['/usuarios/{id}'].delete?.responses[
+      '409'
+    ] as ResponseObject;
+    expect(userConflict.description).toContain('historial');
     expect(document.paths['/reservas'].post?.responses['409']).toBeDefined();
     const cancellation = document.paths['/reservas/{id}'].delete?.responses[
       '200'
