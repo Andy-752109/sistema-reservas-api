@@ -91,7 +91,7 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 | Contenedores | Docker (build multi-stage), Docker Hub |
 | CI/CD | GitHub Actions |
 | Frontend | React + TypeScript + Vite (repo `sistema-reservas-web`) |
-| Infraestructura como código | Terraform (carpeta `infra/` de este repo) |
+| Infraestructura como código | Terraform (repo [`sistema-reservas-infra`](https://github.com/Andy-752109/sistema-reservas-infra)) |
 | Nube | Microsoft Azure: App Service, Azure Database for PostgreSQL, Application Insights |
 | Gestión | GitHub Projects |
 
@@ -101,12 +101,13 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 Desarrollador → GitHub → GitHub Actions → Pruebas unitarias → Docker → Docker Hub → Azure → PostgreSQL
 ```
 
-El sistema se reparte en dos repositorios:
+El sistema se reparte en tres repositorios:
 
 | Repositorio | Contenido |
 |-------------|-----------|
-| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile, pipelines del backend y Terraform en `infra/`. |
+| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile y pipelines del backend. Aquí viven los issues de los tres repos. |
 | [`sistema-reservas-web`](https://github.com/Andy-752109/sistema-reservas-web) | Frontend React + TypeScript + Vite y sus pipelines. |
+| [`sistema-reservas-infra`](https://github.com/Andy-752109/sistema-reservas-infra) | Terraform: crea los recursos de Azure de Dev y Prod. Los pipelines de API y web despliegan sobre esos recursos. |
 
 Recursos en Azure (Resource Group `reservas-rg`), creados con Terraform, con dos ambientes: **Dev** y **Prod**.
 
@@ -475,7 +476,6 @@ sistema-reservas-api/
 │   ├── prisma/            # PrismaService
 │   └── main.ts            # Bootstrap + Swagger
 ├── test/                  # Pruebas
-├── infra/                 # Terraform: recursos de Azure para Dev y Prod
 ├── Dockerfile             # Build multi-stage
 ├── docker-compose.yml     # PostgreSQL local (+ API opcional)
 ├── .env.example
