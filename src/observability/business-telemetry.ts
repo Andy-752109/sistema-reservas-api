@@ -1,5 +1,6 @@
 import { context } from '@opentelemetry/api';
 import { logs, SeverityNumber } from '@opentelemetry/api-logs';
+import { Prisma } from '../generated/prisma/client';
 
 export type ReservationEvent =
   'reserva.creada' | 'reserva.cancelada' | 'reserva.traslape';
@@ -27,7 +28,16 @@ export function serverException(
   status: number,
   method: string,
   route: string,
+  exception: unknown,
 ): void {
+  const type =
+    exception instanceof Error ? exception.constructor.name : 'UnknownError';
+  const code =
+    exception instanceof Prisma.PrismaClientKnownRequestError
+      ? exception.code
+      : exception instanceof Prisma.PrismaClientInitializationError
+        ? exception.errorCode
+        : undefined;
   logs.getLogger('sistema-reservas.errores').emit({
     context: context.active(),
     body: 'api.error_5xx',
@@ -37,12 +47,11 @@ export function serverException(
       'http.response.status_code': status,
       'http.request.method': method,
       'http.route': route,
-      'exception.type': 'InternalServerError',
+      'exception.type': type,
+      ...(code ? { 'exception.code': code } : {}),
       'exception.message': 'Error interno de la API',
-      // Never include the original message/stack: driver errors can contain SQL,
-      // credentials or user input. This marker identifies the reporting boundary.
-      'exception.stacktrace':
-        'InternalServerError: Error interno de la API\n    at GlobalExceptionFilter.catch (api)',
+      // Full diagnostics are retained in private server logs, not telemetry.
+      'exception.stacktrace': `${type}: Error interno de la API\n    at GlobalExceptionFilter.catch (api)`,
     },
   });
 }

@@ -1,10 +1,12 @@
-import { ArgumentsHost, Catch, HttpException } from '@nestjs/common';
+import { ArgumentsHost, Catch, HttpException, Logger } from '@nestjs/common';
 import { BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
 import type { Request } from 'express';
 import { serverException } from './business-telemetry';
 
 @Catch()
 export class GlobalExceptionFilter extends BaseExceptionFilter {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
+
   constructor(adapterHost: HttpAdapterHost) {
     super(adapterHost.httpAdapter);
   }
@@ -13,12 +15,21 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
     const status =
       exception instanceof HttpException ? exception.getStatus() : 500;
     if (status >= 500 && status <= 599) {
+      // Preserve the diagnostic in private container logs before sanitizing the
+      // HTTP response. Azure telemetry receives only the type and Prisma code.
+      this.logger.error(
+        exception instanceof Error
+          ? { name: exception.name, message: exception.message }
+          : exception,
+        exception instanceof Error ? exception.stack : undefined,
+      );
       const request = host.switchToHttp().getRequest<Request>();
       const route = request.route as { path?: unknown } | undefined;
       serverException(
         status,
         request.method,
         typeof route?.path === 'string' ? route.path : 'unmatched',
+        exception,
       );
       // Keep the existing, deliberately sanitized health-check contract.
       if (

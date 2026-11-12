@@ -259,6 +259,7 @@ async function parent() {
         );
         assert.equal(errors.length, 1);
         assert.equal(errors[0].data.baseData.severityLevel, 'Error');
+        assert.equal(errors[0].data.baseData.exceptions[0].typeName, 'Error');
         assert.ok(
           envelopes.some(
             (item) =>

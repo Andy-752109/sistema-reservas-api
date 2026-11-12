@@ -91,7 +91,7 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 | Contenedores | Docker (build multi-stage), Docker Hub |
 | CI/CD | GitHub Actions |
 | Frontend | React + TypeScript + Vite (repo `sistema-reservas-web`) |
-| Infraestructura como código | Terraform (carpeta `infra/` de este repo) |
+| Infraestructura como código | Terraform (repo [`sistema-reservas-infra`](https://github.com/Andy-752109/sistema-reservas-infra)) |
 | Nube | Microsoft Azure: App Service, Azure Database for PostgreSQL, Application Insights |
 | Gestión | GitHub Projects |
 
@@ -101,12 +101,13 @@ El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 Desarrollador → GitHub → GitHub Actions → Pruebas unitarias → Docker → Docker Hub → Azure → PostgreSQL
 ```
 
-El sistema se reparte en dos repositorios:
+El sistema se reparte en tres repositorios:
 
 | Repositorio | Contenido |
 |-------------|-----------|
-| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile, pipelines del backend y Terraform en `infra/`. |
+| `sistema-reservas-api` (este) | API NestJS, Prisma, pruebas, Dockerfile y pipelines del backend. Aquí viven los issues de los tres repos. |
 | [`sistema-reservas-web`](https://github.com/Andy-752109/sistema-reservas-web) | Frontend React + TypeScript + Vite y sus pipelines. |
+| [`sistema-reservas-infra`](https://github.com/Andy-752109/sistema-reservas-infra) | Terraform: crea los recursos de Azure de Dev y Prod. Los pipelines de API y web despliegan sobre esos recursos. |
 
 Recursos en Azure (Resource Group `reservas-rg`), creados con Terraform, con dos ambientes: **Dev** y **Prod**.
 
@@ -181,11 +182,13 @@ Se fijan `prisma`, `@prisma/client` y `@prisma/adapter-pg` en `7.10.1`. `prisma.
 
 Los datos locales persisten en el volumen `pgdata`. `docker compose down` detiene el entorno sin borrar ese volumen. Si cambias `POSTGRES_PORT`, actualiza también el puerto de `DATABASE_URL` en tu `.env`. No versiones ese archivo.
 
-Para levantar la base de datos y la API en contenedores (cuando exista el `Dockerfile`):
+Para levantar la base de datos y la API en contenedores:
 
 ```bash
 docker compose --profile full up -d --build
 ```
+
+La imagen (`Dockerfile` multi-stage sobre `node:22-alpine`) compila en una etapa y en la final deja solo `dist/`, las dependencias de producción, el esquema y las migraciones. Corre como el usuario `node` y escucha en `PORT` (3000). Al arrancar, `docker-entrypoint.sh` ejecuta `prisma migrate deploy` y luego la API, así que la base del ambiente queda migrada en cada despliegue; por eso `prisma` y `dotenv` están en `dependencies`.
 
 Pruebas:
 
@@ -397,7 +400,7 @@ Configura `COMMIT_SHA` con el SHA real de la versión desplegada. El pipeline de
 `CORS_ORIGINS` contiene los orígenes del frontend permitidos, separados por comas. Ejemplo local:
 
 ```dotenv
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
 COMMIT_SHA=development
 ```
 
@@ -405,7 +408,7 @@ En Dev/Prod usa únicamente los orígenes HTTP(S) del frontend de cada ambiente.
 
 Los orígenes ajenos reciben 403, incluidos sus preflight, sin `Access-Control-Allow-Origin`. Los permitidos reciben su origen exacto y pueden usar `Content-Type` y `Authorization`, con métodos GET, HEAD, POST, PUT, PATCH, DELETE y OPTIONS. Los preflight aceptados devuelven 204. CORS usa JWT en el encabezado Authorization y no habilita cookies cross-origin; los guards y permisos continúan aplicándose. Los clientes sin Origin siguen necesitando JWT en las rutas protegidas.
 
-Las dos variables están en `.env.example` y se propagan al servicio API de Compose. La documentación de `/health` está en Swagger, tag `sistema`. Las pruebas cubren 200/503, versión, errores sanitizados, orígenes exactos, rechazos, preflight y conservación del guard JWT; la suite HTTP completa también consulta PostgreSQL real.
+Las dos variables están en `.env.example` y se propagan al servicio API de Compose. Los valores locales de `.env.example` y el valor predeterminado de Compose permiten `http://localhost:5173` y `http://localhost:3000`: este último es necesario para los POST de Swagger UI servido por la API, que también envían `Origin`. Si usas otro host o puerto, agrega su origen explícito. Actualiza manualmente tu `.env` local si ya existía; el archivo de ejemplo no lo reemplaza. En Azure configura los orígenes reales del frontend y de la propia API de cada ambiente. La documentación de `/health` está en Swagger, tag `sistema`. Las pruebas cubren 200/503, versión, errores sanitizados, orígenes exactos, rechazos, preflight y conservación del guard JWT; la suite HTTP completa también consulta PostgreSQL real.
 
 ### Application Insights (issue #56)
 
@@ -462,7 +465,11 @@ Las operaciones de reservas usan la API de logs de OpenTelemetry y el exportador
 
 En las trazas de éxito, `usuarioId` identifica al propietario y `actorId` a quien ejecutó la operación, que puede ser ADMIN. Los identificadores aparecen en `customDimensions`; el contexto activo vincula los logs y excepciones con `operation_Id`. Las trazas informativas van a `traces`; los errores llevan los atributos de excepción que Azure Monitor convierte a `exceptions`. Un conflicto 409 conserva su respuesta de negocio y solo genera WARN, sin excepción 5xx.
 
-El filtro conserva las respuestas 4xx y el contrato sanitizado de `/health` (503 con versión y estado de la base). Los demás 5xx conservan su código y responden `Internal server error`. En telemetría, la excepción usa el tipo genérico `InternalServerError`, mensaje fijo y un marcador de stack del filtro: **no conserva el mensaje ni el stack original**, que podrían incluir SQL o secretos. Para esta demo permite localizar y correlacionar el fallo, pero no reconstruir su causa mediante el stack original. No se registran cuerpos, tokens, cabeceras, correos ni query strings en estos eventos.
+El filtro conserva las respuestas 4xx y el contrato sanitizado de `/health` (503 con versión y estado de la base). Los demás 5xx conservan su código y responden `Internal server error`. Antes de sanitizar la respuesta, registra mediante `Logger` el nombre, mensaje y stack originales en los **logs privados del servidor/contenedor**, para diagnosticar errores como una conexión PostgreSQL fallida. Esos diagnósticos pueden contener información interna: no deben publicarse como respuesta HTTP ni como evidencia sin revisar.
+
+La telemetría conserva la correlación y agrega el tipo original de excepción y `exception.code` cuando Prisma proporciona un código. El mensaje es fijo y el stack es un marcador del filtro: no se exportan el mensaje/stack original, cuerpos, tokens, cabeceras ni query strings en estos eventos. Para investigar la causa concreta, consulta los logs privados de la API.
+
+Si falla el arranque, `main.ts` imprime el mensaje de error además del aviso general, sin imprimir su stack, y termina con código 1. Así los errores de `OTEL_SERVICE_NAME` o `CORS_ORIGINS` identifican la variable que debe corregirse. Después de `npm run build`, `npm run test:startup` verifica ambos casos con procesos aislados, sin usar PostgreSQL ni enviar datos a Azure.
 
 La consulta está guardada en [`docs/observability/demo-apm.kql`](docs/observability/demo-apm.kql). Desde **Application Insights → Logs**, pega su contenido, selecciona el ambiente y ejecútala después de crear, intentar traslapar y cancelar una reserva. Guarda la consulta como `Reservas-APM-demo` en el recurso de cada ambiente. Las tablas usan los nombres del contexto de Application Insights (`traces`/`exceptions`); ajusta el rango de 30 minutos si la demo es anterior. La consulta muestra rol, severidad, identificadores y `operation_Id` para abrir la transacción relacionada.
 
@@ -500,7 +507,6 @@ sistema-reservas-api/
 │   ├── prisma/            # PrismaService
 │   └── main.ts            # Bootstrap + Swagger
 ├── test/                  # Pruebas
-├── infra/                 # Terraform: recursos de Azure para Dev y Prod
 ├── Dockerfile             # Build multi-stage
 ├── docker-compose.yml     # PostgreSQL local (+ API opcional)
 ├── .env.example
@@ -539,7 +545,9 @@ Los roles indican quién responde por cada área; la documentación se reparte p
 | Rol | Responsable | Área | Revisa los PR de | Tareas | Puntos |
 |-----|-------------|------|------------------|--------|--------|
 | Backend | Ramiro | API, base de datos y pruebas | Frontend | 14 | 26 |
-| Frontend | Ale | Aplicación web y sus pipelines | DevOps e infra | 14 | 27 |
-| DevOps e infra | Andy | Docker, CI/CD, Terraform y tablero | Backend | 15 | 27 |
+| Frontend | Ale | Aplicación web, CI del web, Wiki de deployment y tablero | DevOps e infra | 14 | 26 |
+| DevOps e infra | Andy | Docker y despliegue de API y web, CI/CD y Terraform | Backend | 15 | 28 |
 
 Los puntos son una estimación inicial y cuentan una tarea opcional de Frontend (#58, 2 puntos). Al terminar cada fase, el equipo compara los puntos y mueve tareas si alguien va más cargado.
+
+**Ajuste del 11 nov 2026:** Andy toma el Dockerfile (#32) y el CD (#53) del web, que siguen el mismo patrón que los de la API; Ale toma la Wiki de deployment (#19) y el tablero (#65) y se concentra en las pantallas.

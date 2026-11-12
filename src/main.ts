@@ -12,9 +12,10 @@ async function bootstrap() {
     throw error;
   }
 }
-void bootstrap().catch(() => {
+void bootstrap().catch((error: unknown) => {
   console.error(
     'No se pudo iniciar la API. Revisa la configuracion del entorno.',
+    error instanceof Error ? error.message : 'Error desconocido',
   );
   process.exitCode = 1;
 });
