@@ -1,4 +1,4 @@
-import { Module, ValidationPipe } from '@nestjs/common';
+import { Module, OnApplicationShutdown, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
@@ -8,6 +8,7 @@ import { ReservasModule } from './reservas/reservas.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AppService } from './app.service';
     ReservasModule,
     AuthModule,
     PrismaModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [
@@ -27,4 +29,10 @@ import { AppService } from './app.service';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements OnApplicationShutdown {
+  shutdownTelemetry?: () => Promise<void>;
+
+  async onApplicationShutdown() {
+    await this.shutdownTelemetry?.();
+  }
+}
