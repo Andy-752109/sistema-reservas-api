@@ -1,0 +1,4 @@
+# Los scripts de shell se ejecutan dentro de contenedores Linux: siempre con LF.
+# Sin esto, un checkout en Windows con core.autocrlf=true los deja en CRLF y el
+# contenedor falla al arrancar con "set: illegal option -".
+*.sh text eol=lf

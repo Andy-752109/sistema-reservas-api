@@ -1,0 +1,19 @@
+# Se generan dentro de la imagen
+node_modules/
+dist/
+src/generated/
+
+# Reportes, secretos y archivos que no forman parte de la imagen
+coverage/
+test-results/
+.env
+*.log
+.git/
+.github/
+infra/
+test/
+docs/
+*.md
+.vscode/
+.idea/
+.DS_Store
