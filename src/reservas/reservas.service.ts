@@ -11,6 +11,7 @@ import { Prisma } from '../generated/prisma/client';
 import { EstadoReserva, Rol } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { GuardarReservaDto } from './dto/guardar-reserva.dto';
+import { reservationTrace } from '../observability/business-telemetry';
 
 @Injectable()
 export class ReservasService {
@@ -25,10 +26,17 @@ export class ReservasService {
 
   async crear(dto: GuardarReservaDto, actor: AuthUser) {
     const { inicio, fin } = this.intervalo(dto);
-    return this.prisma.$transaction(
+    const reserva = await this.prisma.$transaction(
       async (tx) => {
         await this.lockEspacioActivo(tx, dto.espacioId);
-        await this.validarTraslape(tx, dto.espacioId, inicio, fin);
+        await this.validarTraslape(
+          tx,
+          dto.espacioId,
+          inicio,
+          fin,
+          undefined,
+          actor.id,
+        );
         return tx.reserva.create({
           data: {
             usuarioId: actor.id,
@@ -41,6 +49,13 @@ export class ReservasService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
+    reservationTrace('reserva.creada', {
+      reservaId: reserva.id,
+      espacioId: reserva.espacioId,
+      usuarioId: reserva.usuarioId,
+      actorId: actor.id,
+    });
+    return reserva;
   }
 
   async actualizar(id: number, dto: GuardarReservaDto, actor: AuthUser) {
@@ -54,7 +69,14 @@ export class ReservasService {
             'Solo se pueden modificar reservas ACTIVAS',
           );
         await this.lockEspacioActivo(tx, dto.espacioId);
-        await this.validarTraslape(tx, dto.espacioId, inicio, fin, id);
+        await this.validarTraslape(
+          tx,
+          dto.espacioId,
+          inicio,
+          fin,
+          id,
+          actor.id,
+        );
         return tx.reserva.update({
           where: { id },
           data: { espacioId: dto.espacioId, inicio, fin },
@@ -66,16 +88,28 @@ export class ReservasService {
 
   async cancelar(id: number, actor: AuthUser) {
     this.validateId(id);
-    return this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx) => {
-        await this.lockReserva(tx, id, actor);
-        return tx.reserva.update({
+        const previous = await this.lockReserva(tx, id, actor);
+        const reserva = await tx.reserva.update({
           where: { id },
           data: { estado: EstadoReserva.CANCELADA },
         });
+        return {
+          reserva,
+          changed: previous.estado !== EstadoReserva.CANCELADA,
+        };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
+    if (result.changed)
+      reservationTrace('reserva.cancelada', {
+        reservaId: result.reserva.id,
+        espacioId: result.reserva.espacioId,
+        usuarioId: result.reserva.usuarioId,
+        actorId: actor.id,
+      });
+    return result.reserva;
   }
 
   async validarTraslape(
@@ -84,6 +118,7 @@ export class ReservasService {
     inicio: Date,
     fin: Date,
     excluirId?: number,
+    actorId?: number,
   ): Promise<void> {
     const conflicto = await tx.reserva.findFirst({
       where: {
@@ -95,10 +130,17 @@ export class ReservasService {
       },
       select: { id: true },
     });
-    if (conflicto)
+    if (conflicto) {
+      if (actorId !== undefined)
+        reservationTrace('reserva.traslape', {
+          espacioId,
+          usuarioId: actorId,
+          actorId,
+        });
       throw new ConflictException(
         'El espacio ya tiene una reserva ACTIVA en ese intervalo',
       );
+    }
   }
 
   private intervalo(dto: GuardarReservaDto): { inicio: Date; fin: Date } {

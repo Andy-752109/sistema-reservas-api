@@ -8,6 +8,9 @@ import { AppModule } from '../src/app.module';
 import { createCorsOptions } from '../src/config/cors.config';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { setupSwagger } from '../src/swagger';
+import { parse } from 'dotenv';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 describe('Health y CORS (HTTP sin PostgreSQL)', () => {
   let app: INestApplication<App>;
@@ -21,7 +24,7 @@ describe('Health y CORS (HTTP sin PostgreSQL)', () => {
       JWT_SECRET: 'solo-para-pruebas-health',
       JWT_EXPIRES_IN: '1h',
       COMMIT_SHA: version,
-      CORS_ORIGINS: `${origin},http://localhost:5173`,
+      CORS_ORIGINS: `${origin},${parse(readFileSync(join(__dirname, '../.env.example'))).CORS_ORIGINS}`,
     };
     const config = {
       get: (key: string, fallback?: string) => values[key] ?? fallback,
@@ -67,7 +70,7 @@ describe('Health y CORS (HTTP sin PostgreSQL)', () => {
     expect(response.text).not.toContain('detalle-interno');
   });
 
-  it.each([origin, 'http://localhost:5173'])(
+  it.each([origin, 'http://localhost:5173', 'http://localhost:3000'])(
     'permite el origen configurado %s',
     async (value) => {
       const response = await api()
@@ -81,6 +84,17 @@ describe('Health y CORS (HTTP sin PostgreSQL)', () => {
       ).toBeUndefined();
     },
   );
+
+  it('allows the local Swagger POST origin through to request validation', async () => {
+    const response = await api()
+      .post('/login')
+      .set('Origin', 'http://localhost:3000')
+      .send({})
+      .expect(400);
+    expect(response.headers['access-control-allow-origin']).toBe(
+      'http://localhost:3000',
+    );
+  });
 
   it('acepta preflight para Authorization y Content-Type', async () => {
     const response = await api()

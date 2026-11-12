@@ -1,0 +1,28 @@
+// Run from the Application Insights resource (classic table names).
+// Select a time range that includes the demo, then save as Reservas-APM-demo.
+union
+(
+    traces
+    | where timestamp > ago(30m)
+    | where tostring(customDimensions.event) in ("reserva.creada", "reserva.cancelada", "reserva.traslape")
+    | project timestamp, cloud_RoleName, operation_Id, severityLevel,
+        tipo="traza", detalle=message, customDimensions
+),
+(
+    exceptions
+    | where timestamp > ago(30m)
+    | where tostring(customDimensions.event) == "api.error_5xx"
+    | project timestamp, cloud_RoleName, operation_Id, severityLevel,
+        tipo="excepcion", detalle=coalesce(innermostMessage, outerMessage), customDimensions
+)
+| where cloud_RoleName in ("api-dev", "api-prod")
+| extend evento=tostring(customDimensions.event),
+    usuarioId=tostring(customDimensions.usuarioId),
+    espacioId=tostring(customDimensions.espacioId),
+    reservaId=tostring(customDimensions.reservaId),
+    actorId=tostring(customDimensions.actorId),
+    ruta=tostring(customDimensions["http.route"]),
+    codigo=tostring(customDimensions["http.response.status_code"])
+| project timestamp, cloud_RoleName, tipo, severityLevel, evento, detalle,
+    usuarioId, espacioId, reservaId, actorId, ruta, codigo, operation_Id
+| order by timestamp desc
