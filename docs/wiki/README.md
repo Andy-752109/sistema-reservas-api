@@ -1,38 +1,40 @@
-# Fuentes de la Wiki — issue #14
+# Documentación del proyecto — mantenimiento y publicación
 
-Estas páginas se mantienen en el repositorio de la API para revisar su contenido mediante PR antes de publicarlo en la Wiki de GitHub. Esta carpeta no se sincroniza automáticamente con la Wiki.
+El [índice Home](Home.md) reúne las seis páginas de documentación. Los Markdown se mantienen en el repositorio de la API para revisar cambios mediante PR; no se sincronizan automáticamente con la pestaña Wiki de GitHub.
 
-| Archivo para revisar | Título exacto al publicar | Ubicación de publicación |
-|----------------------|---------------------------|--------------------------|
-| [Home.md](Home.md) | `Home` | [Inicio de la Wiki](https://github.com/Andy-752109/sistema-reservas-api/wiki) |
-| [Descripcion.md](Descripcion.md) | `Descripcion` | [Descripción](https://github.com/Andy-752109/sistema-reservas-api/wiki/Descripcion) |
+| Fuente | Título de página al publicar |
+|--------|----------------------------|
+| [Home.md](Home.md) | `Home` |
+| [Descripcion.md](Descripcion.md) | `Descripcion` |
+| [Componentes.md](Componentes.md) | `Componentes` |
+| [Stack-y-ramas.md](Stack-y-ramas.md) | `Stack-y-ramas` |
+| [Infraestructura.md](Infraestructura.md) | `Infraestructura` |
+| [Deployment-y-CICD.md](Deployment-y-CICD.md) | `Deployment-y-CICD` |
 
-`README.md` contiene instrucciones de mantenimiento: no se publica como una tercera página de la Wiki. Los enlaces entre páginas usan sus direcciones finales en GitHub; mientras no se publiquen, usa los enlaces locales de la tabla para revisar los archivos.
+`README.md`, `PUBLICACION-componentes.md` y `VERIFICACION-97.md` son instrucciones/evidencia del repositorio, no páginas adicionales de la Wiki. La imagen `infraestructura.png` acompaña a Infraestructura y debe copiarse si se publica esa página.
 
-## Estado y fuentes
+## Estado al 12 de noviembre de 2026
 
-- Fuente funcional y nombres del equipo: README de la API.
-- Reparto de roles, cuentas y orden de documentación: guía de arranque del equipo.
-- Páginas exigidas: [issue #14](https://github.com/Andy-752109/sistema-reservas-api/issues/14).
-- Secciones posteriores del índice: issues #15, #16, #18 y #19. Se enlazan sus tareas y no páginas inexistentes.
-- Rama independiente creada desde `origin/develop`: `feature/14-wiki-inicio-descripcion`. No incorpora los PR de código pendientes.
-
-El 6 de noviembre de 2026, GitHub informó `has_wiki: true` y permiso de escritura para la cuenta autenticada, pero `git ls-remote https://github.com/Andy-752109/sistema-reservas-api.wiki.git HEAD` respondió `Repository not found`. La Wiki aún no pudo leerse por Git; esto es compatible con una Wiki sin página inicial, pero no basta por sí solo para descartar otras restricciones de acceso.
-
-No se encontraron URLs de ambientes en los README, homepage de los repositorios ni despliegues registrados en GitHub. Las cuatro direcciones públicas (API/web de Dev/Prod) quedan explícitamente pendientes de confirmar con infraestructura. No se consultaron secretos ni archivos `.env` para obtenerlas.
+- Contenido integrado: Inicio y Descripción (#84), Componentes (#83), Stack y ramas (#85), Infraestructura (#100) y Deployment/CI/CD (#101).
+- Esta actualización del #97 incorpora las URLs operativas de Web/API Dev y Prod, el repositorio de infraestructura y el comportamiento del #88 / PR #96. Home y Componentes se contrastan con `develop`.
+- Los seis documentos están disponibles en el repositorio; no se afirma que estén publicados en la pestaña Wiki.
+- La Wiki sigue sin estar accesible por Git (`Repository not found`). No se modificaron permisos ni configuración del repositorio.
+- Se recomienda publicar también en la Wiki para respetar la entrega original de #14/#69. El #97 permite, como alternativa, confirmar `docs/wiki/` como entrega oficial; esa confirmación sigue pendiente.
+- Las comprobaciones HTTP, los resultados y sus límites están en [VERIFICACION-97.md](VERIFICACION-97.md). Las versiones desplegadas aún indican `pendiente`; no se acredita la funcionalidad completa de la web.
 
 ## Publicación después de revisar el contenido
 
-1. Abrir la pestaña **Wiki** del repositorio de la API con la cuenta que tiene permiso de escritura. Si no existe una página inicial, crear `Home` en Markdown usando el contenido de [Home.md](Home.md) y guardarla. Si la pestaña no permite crear páginas, revisar el acceso con la persona propietaria sin cambiar permisos automáticamente.
-2. Crear la página `Descripcion` en Markdown usando [Descripcion.md](Descripcion.md). Si ya existe alguna de las páginas, comparar su contenido y conservar aportaciones previas al actualizarla.
-3. Abrir ambas páginas publicadas y comprobar sus enlaces de navegación, repositorios y tablero. Marcar las filas de Inicio y Descripción como publicadas en el índice cuando se confirme la publicación, actualizando también el archivo fuente.
-4. Confirmar con infraestructura las URLs HTTPS de la web y la API de cada ambiente. Sustituir los pendientes en `Home.md` y en la página publicada; agregar los enlaces reales de `/api/docs` y `/health` y verificar que correspondan al ambiente indicado.
-5. Guardar en el PR las URLs de las páginas publicadas y su verificación. El issue #14 permanece pendiente de completar hasta publicar ambas páginas y resolver los enlaces Dev/Prod requeridos.
+1. Revisar y fusionar el PR de documentación hacia `develop` antes de copiar su contenido a la Wiki.
+2. Con una cuenta autorizada, abrir la pestaña Wiki. Si falta la página inicial, crear `Home`. Si no permite hacerlo, coordinarlo con Andy sin cambiar permisos automáticamente.
+3. Una vez creada la primera página, clonar `https://github.com/Andy-752109/sistema-reservas-api.wiki.git`. Comparar el contenido existente antes de actualizar y conservar aportaciones del equipo.
+4. Copiar las seis páginas y `infraestructura.png`. En la copia destinada a la Wiki, convertir enlaces entre páginas como `(Componentes.md)` a `(Componentes)` o a su URL final de Wiki, para que funcionen con el renderizador de páginas. Los enlaces de Inicio e instrucciones que apunten a README o VERIFICACION deben ir a los archivos de `docs/wiki/` en `develop`, no a páginas inexistentes. Verificar también el enlace relativo de la imagen.
+5. Publicar mediante un commit y push normal a la rama predeterminada de la Wiki, con autorización; no usar force push ni sobrescribir archivos ajenos. Fusionar el repositorio de la API por sí solo no publica la Wiki.
+6. Abrir las seis páginas publicadas y comprobar tablas, diagramas, imagen, índice, enlaces de navegación y ambientes. Registrar las URLs y evidencia en el PR o issue #97. Solo entonces marcar como publicadas las páginas del índice.
 
-La publicación en la Wiki genera commits en su repositorio separado; **fusionar este PR no publica las páginas**. Una vez creada la primera página en GitHub, el contenido también puede mantenerse clonando `https://github.com/Andy-752109/sistema-reservas-api.wiki.git` y enviando cambios a su rama predeterminada. No sobrescribas archivos ajenos a este issue ni uses force push.
+Los issues #14/#97 siguen pendientes de su criterio de publicación o de una confirmación explícita de entrega mediante los Markdown. No se debe inventar evidencia ni cambiar el estado a Done por preparar los archivos.
 
-Referencia oficial: [agregar o editar páginas de una Wiki](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages).
+GitHub documenta que la primera página se crea en la web antes de clonar el repositorio `.wiki.git`: [agregar o editar páginas](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages).
 
-## Comprobación del cambio
+## Verificación de cambios
 
-Este issue modifica únicamente Markdown. Revisar los encabezados y tablas, comprobar los destinos locales `Home.md`/`Descripcion.md` y ejecutar `git diff --check`. No requiere ejecutar pruebas de la API ni compilar código. La revisión local no acredita que las páginas estén publicadas ni que los ambientes estén disponibles.
+Para cambios solo de documentación: contrastar con el código y workflows, comprobar UTF-8 y enlaces locales, renderizar los diagramas modificados e inspeccionarlos, y ejecutar `git diff --check`. No requiere volver a ejecutar pruebas de negocio ni compilar la API.

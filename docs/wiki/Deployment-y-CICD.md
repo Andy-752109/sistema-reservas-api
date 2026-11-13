@@ -129,7 +129,7 @@ Solo el CD inicia sesión en Docker Hub. En los PR la imagen se construye sin pu
 | `AZURE_RESOURCE_GROUP` | `reservas-rg` | Grupo de recursos |
 | `WEB_URL` | `https://reservas-web-dev-rw39me.azurewebsites.net` | Origen que el smoke test usa para comprobar CORS |
 
-Los secretos de la aplicación (`DATABASE_URL`, `JWT_SECRET`) no pasan por GitHub: Terraform los entrega directamente a cada Web App como *app settings*. Ver [Infraestructura Dev y Prod](https://github.com/Andy-752109/sistema-reservas-api/wiki/Infraestructura).
+Los secretos de la aplicación (`DATABASE_URL`, `JWT_SECRET`) no pasan por GitHub: Terraform los entrega directamente a cada Web App como *app settings*. Ver [Infraestructura Dev y Prod](Infraestructura.md).
 
 ## Liberación diaria
 
