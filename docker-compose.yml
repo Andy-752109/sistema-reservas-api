@@ -38,6 +38,13 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-reservas}:${POSTGRES_PASSWORD:-reservas}@db:5432/${POSTGRES_DB:-reservas_db}?schema=public
       JWT_SECRET: ${JWT_SECRET:-cambia-este-secreto}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      COMMIT_SHA: ${COMMIT_SHA:-development}
+      APPLICATIONINSIGHTS_CONNECTION_STRING: ${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-api-dev}
+      ESPACIOS_HORA_APERTURA: ${ESPACIOS_HORA_APERTURA:-07:00}
+      ESPACIOS_HORA_CIERRE: ${ESPACIOS_HORA_CIERRE:-21:00}
+      ESPACIOS_ZONA_HORARIA: ${ESPACIOS_ZONA_HORARIA:-America/Mexico_City}
     ports:
       - "${PORT:-3000}:3000"
 

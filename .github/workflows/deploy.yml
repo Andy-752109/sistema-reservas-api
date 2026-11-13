@@ -1,0 +1,94 @@
+# Despliega una imagen ya publicada en la Web App de un ambiente y la comprueba.
+# Lo llama cd.yml una vez por ambiente. Los datos de cada ambiente son variables
+# del environment de GitHub: API_WEBAPP_NAME y WEB_URL.
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      ambiente:
+        description: Environment de GitHub (development o production)
+        type: string
+        required: true
+      imagen:
+        description: Imagen con el tag del SHA, p. ej. usuario/reservas-api:abc1234
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Desplegar
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # production tiene aprobación obligatoria y solo acepta main.
+    environment:
+      name: ${{ inputs.ambiente }}
+      url: ${{ steps.datos.outputs.url }}
+    env:
+      APP: ${{ vars.API_WEBAPP_NAME }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      WEB_URL: ${{ vars.WEB_URL }}
+      IMAGEN: ${{ inputs.imagen }}
+    steps:
+      - name: Datos del ambiente
+        id: datos
+        run: echo "url=https://${APP}.azurewebsites.net" >> "$GITHUB_OUTPUT"
+
+      # OIDC: Azure confía en el token de este job por su environment; no hay contraseñas.
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Al arrancar, el contenedor aplica prisma migrate deploy contra la base del ambiente.
+      - name: Desplegar la imagen
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.API_WEBAPP_NAME }}
+          images: ${{ inputs.imagen }}
+
+      # /health la devuelve como "version". Va después del despliegue: si fuera antes,
+      # Azure reiniciaría con la imagen vieja y el SHA nuevo, y el smoke test pasaría
+      # aunque la imagen nueva no arrancara.
+      - name: Registrar la versión (COMMIT_SHA)
+        run: az webapp config appsettings set -g "$RG" -n "$APP" --settings "COMMIT_SHA=${GITHUB_SHA}" -o none
+
+      - name: Smoke test
+        env:
+          URL: ${{ steps.datos.outputs.url }}
+        run: |
+          # App Service tarda en descargar la imagen y reiniciar: hasta 10 minutos.
+          for intento in $(seq 1 60); do
+            cuerpo=$(curl -s -m 10 "$URL/health" || true)
+            if echo "$cuerpo" | grep -q "\"version\":\"${GITHUB_SHA}\"" && echo "$cuerpo" | grep -q '"database":"up"'; then
+              echo "✅ /health: $cuerpo"
+              break
+            fi
+            echo "Intento ${intento}: ${cuerpo:-sin respuesta}"
+            sleep 10
+          done
+          echo "$cuerpo" | grep -q "\"version\":\"${GITHUB_SHA}\"" || { echo "::error::/health no responde con la versión ${GITHUB_SHA}"; exit 1; }
+          echo "$cuerpo" | grep -q '"database":"up"' || { echo "::error::La base de datos no responde"; exit 1; }
+
+          # Integración con el frontend: el CORS debe aceptar el web de este ambiente.
+          origen=$(curl -s -m 10 -o /dev/null -D - -X OPTIONS "$URL/login" \
+            -H "Origin: ${WEB_URL}" -H "Access-Control-Request-Method: POST" \
+            | tr -d '\r' | awk -F': ' 'tolower($1)=="access-control-allow-origin"{print $2}')
+          [ "$origen" = "$WEB_URL" ] || { echo "::error::CORS no acepta ${WEB_URL} (respondió '${origen}')"; exit 1; }
+          echo "✅ CORS acepta ${WEB_URL}"
+
+      - name: Resumen
+        env:
+          URL: ${{ steps.datos.outputs.url }}
+        run: |
+          {
+            echo "### ${{ inputs.ambiente }}"
+            echo "- Imagen: \`${IMAGEN}\`"
+            echo "- API: ${URL} · Swagger: ${URL}/api/docs"
+            echo "- \`/health\` con la versión \`${GITHUB_SHA::7}\` y base de datos arriba"
+          } >> "$GITHUB_STEP_SUMMARY"
