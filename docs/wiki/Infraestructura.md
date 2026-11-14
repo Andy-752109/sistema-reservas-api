@@ -25,6 +25,7 @@ Los dos ambientes, **Dev** y **Prod**, comparten el mismo App Service Plan y el 
 | Log Analytics | `reservas-logs-westus3` | 30 días de retención, tope de 1 GB al día | West US 3 | Guarda los logs y la telemetría de ambos ambientes |
 | Application Insights | `reservas-appi-dev-westus3` | Basado en el workspace | West US 3 | Monitoreo de la API de Dev |
 | Application Insights | `reservas-appi-prod-westus3` | Basado en el workspace | West US 3 | Monitoreo de la API de Prod |
+| Dashboard del portal | `reservas-dashboard` | 5 gráficas de Azure Monitor, últimas 24 h | West US 3 | Métricas de CPU, memoria, requests, errores 5xx y tiempo de respuesta ([detalle](#métricas-y-dashboard)) |
 | Resource Group | `reservas-tfstate-rg` | — | Central US | Separado del proyecto para que `terraform destroy` no borre el estado |
 | Storage Account | `streservastf…` (contenedor `tfstate`) | Standard LRS | Central US | Estado remoto de Terraform; se crea una sola vez con `bootstrap/` |
 
@@ -51,6 +52,36 @@ Terraform entrega a cada Web App sus variables como *app settings*. Ningún secr
 |---------|-----------|
 | Web (`reservas-web-*`) | `API_URL`, `AMBIENTE` (`DEV` o `PROD`), `APP_VERSION`, `WEBSITES_PORT=80` |
 | API (`reservas-api-*`) | `DATABASE_URL`, `JWT_SECRET` (uno por ambiente), `CORS_ORIGINS`, `APPLICATIONINSIGHTS_CONNECTION_STRING`, `COMMIT_SHA`, `AMBIENTE`, `WEBSITES_PORT=3000` |
+
+## Métricas y dashboard
+
+El dashboard compartido **Sistema de Reservas · Métricas** está definido en Terraform ([`dashboard.tf`](https://github.com/Andy-752109/sistema-reservas-infra/blob/develop/dashboard.tf)); `terraform output dashboard` da su enlace en el portal. Usa métricas de Azure Monitor, así que no depende del código de la API.
+
+| Gráfica | Métrica | Recurso |
+|---------|---------|---------|
+| CPU del App Service Plan | `CpuPercentage` (promedio) | `reservas-plan` |
+| Memoria del App Service Plan | `MemoryPercentage` (promedio) | `reservas-plan` |
+| Requests de la API | `Requests` (total) | API de Dev y de Prod |
+| Errores HTTP 5xx de la API | `Http5xx` (total) | API de Dev y de Prod |
+| Tiempo de respuesta de la API | `HttpResponseTime` (promedio) | API de Dev y de Prod |
+
+CPU y memoria se miden en el plan porque las 4 Web Apps lo comparten: es el consumo real de la máquina que se paga.
+
+![Dashboard: CPU y memoria del App Service Plan; requests y errores 5xx de la API en Dev y Prod](dashboard-plan-y-api.png)
+
+![Dashboard: tiempo de respuesta de la API en Dev y Prod](dashboard-tiempo-respuesta.png)
+
+Lectura del 13 de noviembre de 2026, últimas 24 horas:
+
+| Gráfica | Valor | Interpretación |
+|---------|-------|----------------|
+| CPU | 15–20 %, picos de 38 % | Holgado; los picos coinciden con los despliegues |
+| Memoria | ~78 %, estable | Cuatro contenedores en 1.75 GB. Es el costo de compartir un B1 y lo primero que habría que escalar |
+| Requests | 3–30 por intervalo | Sobre todo health checks de App Service y smoke tests del CD |
+| Errores 5xx | 0 en Dev y Prod | Sin errores del servidor |
+| Tiempo de respuesta | ~0.03 s, un pico de ~25 s | El pico es el arranque en frío del contenedor durante la primera liberación; por eso el smoke test del CD espera hasta 10 minutos |
+
+Las trazas de negocio (`reserva.creada`, `reserva.traslape`…) y los errores de la aplicación no están en este dashboard: se consultan en el Application Insights de cada ambiente.
 
 ## Decisiones de costo y de diseño
 
