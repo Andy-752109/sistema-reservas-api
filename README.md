@@ -44,7 +44,7 @@ El sistema reúne en un solo lugar el catálogo de espacios y sus horarios, **im
 **Incluye:** registro e inicio de sesión, catálogo de espacios y reservas con validación de traslapes.
 **No incluye:** pagos, notificaciones por correo ni aplicación móvil.
 
-Las páginas de Inicio y Descripción para la Wiki se revisan en [docs/wiki/](docs/wiki/README.md). Allí se indica cómo publicarlas y qué enlaces Dev/Prod faltan por confirmar; guardar los archivos en este repositorio no publica automáticamente la Wiki.
+El [índice de documentación](docs/wiki/Home.md) reúne descripción, componentes, stack, infraestructura y CI/CD, con enlaces HTTPS de Web/API de Dev y Prod, Swagger y salud. El [README de documentación](docs/wiki/README.md) describe el estado de publicación; guardar estos archivos no publica automáticamente la pestaña Wiki de GitHub.
 
 ## Modelo de dominio
 
@@ -78,7 +78,7 @@ Las páginas de Inicio y Descripción para la Wiki se revisan en [docs/wiki/](do
 
 El esquema completo está en [`prisma/schema.prisma`](prisma/schema.prisma).
 
-La documentación detallada de componentes, métodos, permisos y endpoints se revisa en [docs/wiki/Componentes.md](docs/wiki/Componentes.md). Incluye un diagrama de clases Mermaid y referencia el commit de implementación revisado; las [instrucciones de publicación](docs/wiki/PUBLICACION-componentes.md) explican cómo llevarla a la Wiki.
+La documentación detallada de componentes, métodos, permisos y endpoints se revisa en [docs/wiki/Componentes.md](docs/wiki/Componentes.md). Incluye un diagrama de clases Mermaid y enlaza el código integrado en `develop`; las [instrucciones de publicación](docs/wiki/PUBLICACION-componentes.md) explican cómo llevarla a la Wiki.
 
 ## Stack tecnológico
 

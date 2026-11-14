@@ -6,35 +6,34 @@ Documentación del proyecto de **Infraestructura para el Desarrollo Continuo (IT
 
 | Página | Contenido | Estado |
 |--------|-----------|--------|
-| [Inicio](https://github.com/Andy-752109/sistema-reservas-api/wiki) | Índice, repositorios, tablero y ambientes | Contenido preparado en el issue #14 |
-| [Descripción](https://github.com/Andy-752109/sistema-reservas-api/wiki/Descripcion) | Problema, usuarios, alcance y equipo | Contenido preparado en el issue #14 |
-| Componentes, métodos y diagrama de clases | Modelo del sistema y responsabilidades | Pendiente: [issue #15](https://github.com/Andy-752109/sistema-reservas-api/issues/15) |
-| Stack tecnológico y estrategia de ramas | Tecnologías y flujo de colaboración | Pendiente: [issue #16](https://github.com/Andy-752109/sistema-reservas-api/issues/16) |
-| Infraestructura Dev y Prod | Recursos y conexiones entre ambientes | Pendiente: [issue #18](https://github.com/Andy-752109/sistema-reservas-api/issues/18) |
-| Deployment y CI/CD | Construcción, pruebas y despliegue | Pendiente: [issue #19](https://github.com/Andy-752109/sistema-reservas-api/issues/19) |
+| [Inicio](Home.md) | Índice, repositorios, tablero y ambientes | Integrado en el [PR #84](https://github.com/Andy-752109/sistema-reservas-api/pull/84); actualización #97 |
+| [Descripción](Descripcion.md) | Problema, usuarios, alcance y equipo | Integrado en el PR #84 |
+| [Componentes, métodos y diagrama de clases](Componentes.md) | Modelo del sistema y responsabilidades | Integrado en el [PR #83](https://github.com/Andy-752109/sistema-reservas-api/pull/83); actualización #97 |
+| [Stack tecnológico y estrategia de ramas](Stack-y-ramas.md) | Tecnologías y flujo de colaboración | Publicado en el repositorio mediante el [PR #85](https://github.com/Andy-752109/sistema-reservas-api/pull/85) (issue #16) |
+| [Infraestructura Dev y Prod](Infraestructura.md) | Recursos y conexiones entre ambientes | Integrado en el [PR #100](https://github.com/Andy-752109/sistema-reservas-api/pull/100) |
+| [Deployment y CI/CD](Deployment-y-CICD.md) | Construcción, pruebas y despliegue | Integrado en el [PR #101](https://github.com/Andy-752109/sistema-reservas-api/pull/101); CD de Web pendiente del #53 |
 
-Los enlaces de Inicio y Descripción corresponden a su ubicación de publicación en la Wiki. Mientras se publica el issue #14, pueden revisarse los archivos fuente en `docs/wiki/` del PR correspondiente. Las secciones pendientes se enlazan a sus issues hasta que existan sus páginas.
+El índice enlaza los Markdown disponibles en `docs/wiki/`. «Integrado» o «publicado en el repositorio» no significa publicado en la pestaña Wiki de GitHub. El estado de entrega y las instrucciones para publicar se mantienen en [README](README.md).
 
 ## Repositorios y seguimiento
 
-- [API: sistema-reservas-api](https://github.com/Andy-752109/sistema-reservas-api): backend NestJS, Prisma, PostgreSQL y pruebas; también concentra los issues y la infraestructura como código.
+- [API: sistema-reservas-api](https://github.com/Andy-752109/sistema-reservas-api): backend NestJS, Prisma, PostgreSQL, pruebas e issues del proyecto.
 - [Web: sistema-reservas-web](https://github.com/Andy-752109/sistema-reservas-web): frontend React, TypeScript y Vite.
+- [Infraestructura: sistema-reservas-infra](https://github.com/Andy-752109/sistema-reservas-infra): Terraform, recursos Azure y estado remoto.
 - [Tablero del proyecto](https://github.com/users/Andy-752109/projects/2): prioridades y seguimiento del trabajo.
 - [Issues del proyecto](https://github.com/Andy-752109/sistema-reservas-api/issues): requisitos, criterios de aceptación y responsables.
 - [README de la API](https://github.com/Andy-752109/sistema-reservas-api/blob/develop/README.md) y [README de la web](https://github.com/Andy-752109/sistema-reservas-web/blob/develop/README.md): instrucciones de cada repositorio.
 
 ## Ambientes
 
-Se contemplan dos ambientes en Azure: **Dev**, para validar la integración, y **Prod**, para la versión aprobada. La infraestructura y los pipelines se documentan en sus issues; esta página no supone que ya estén desplegados.
+Hay dos ambientes en Azure: **Dev**, para validar la integración, y **Prod**, para la versión aprobada. Las URLs de Swagger de la API fueron entregadas por Andy el 12 de noviembre de 2026. Las URLs de Web se contrastaron con los nombres definidos en Terraform y se verificaron por HTTPS, incluida la configuración pública `config.js` de cada ambiente.
 
-| Ambiente | Frontend | API | Swagger / salud |
-|----------|----------|-----|-----------------|
-| Dev | URL pendiente de confirmación por infraestructura | URL pendiente de confirmación por infraestructura | Pendientes de la URL de la API Dev |
-| Prod | URL pendiente de confirmación por infraestructura | URL pendiente de confirmación por infraestructura | Pendientes de la URL de la API Prod |
+| Ambiente | Frontend | API | Swagger | Salud |
+|----------|----------|-----|---------|-------|
+| Dev | [Web Dev](https://reservas-web-dev-rw39me.azurewebsites.net) | [API Dev](https://reservas-api-dev-rw39me.azurewebsites.net) | [Swagger Dev](https://reservas-api-dev-rw39me.azurewebsites.net/api/docs) | [Health Dev](https://reservas-api-dev-rw39me.azurewebsites.net/health) |
+| Prod | [Web Prod](https://reservas-web-prod-rw39me.azurewebsites.net) | [API Prod](https://reservas-api-prod-rw39me.azurewebsites.net) | [Swagger Prod](https://reservas-api-prod-rw39me.azurewebsites.net/api/docs) | [Health Prod](https://reservas-api-prod-rw39me.azurewebsites.net/health) |
 
-Al confirmar cada URL pública, se agregarán enlaces HTTPS al frontend, a la API y a sus rutas `/api/docs` y `/health`. No deben sustituirse por nombres de recursos supuestos, localhost ni cadenas de conexión de PostgreSQL.
-
-**Estado verificado el 6 de noviembre de 2026:** no se encontraron URLs públicas documentadas, homepage configurada ni despliegues registrados en GitHub en ninguno de los dos repositorios. Esto no descarta un despliegue realizado por otra vía; falta confirmar las direcciones con infraestructura.
+**Actualización del 13 de noviembre de 2026:** la primera liberación de la API por CD ([PR #103](https://github.com/Andy-752109/sistema-reservas-api/pull/103), [run 43512516484](https://github.com/Andy-752109/sistema-reservas-api/actions/runs/43512516484)) finalizó correctamente, con aprobación manual de Prod. `/health` de Dev y Prod devuelve `status: ok`, `database: up` y el mismo SHA `18f279a2f56096cf7209c51d40880547a2339d72`. Ambos catálogos exponen los seis espacios de ejemplo. Web aún indica `version: pendiente` hasta el CD del #53; `config.js` distingue `DEV`/`PROD` y apunta a su API. Las comprobaciones y sus límites están en [VERIFICACION-97.md](VERIFICACION-97.md): no acreditan el funcionamiento completo de login, catálogo y reservas desde la interfaz.
 
 ## Equipo
 
@@ -44,4 +43,4 @@ Al confirmar cada URL pública, se agregarán enlaces HTTPS al frontend, a la AP
 | Andrea Lizeth Arévalo Solis | [Andy-752109](https://github.com/Andy-752109) | DevOps, infraestructura y tablero |
 | Alejandra Viera Huerta | [alebonita](https://github.com/alebonita) | Frontend y experiencia de usuario |
 
-Para conocer los usuarios y los límites funcionales, consulta [Descripción del proyecto](https://github.com/Andy-752109/sistema-reservas-api/wiki/Descripcion).
+Para conocer los usuarios y los límites funcionales, consulta [Descripción del proyecto](Descripcion.md).

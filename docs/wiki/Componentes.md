@@ -1,6 +1,6 @@
 # Componentes, métodos y diagrama de clases
 
-Esta página documenta los modelos Usuario, Espacio y Reserva y las operaciones implementadas en los servicios y controladores NestJS. El código revisado corresponde al commit [`ead81f2`](https://github.com/Andy-752109/sistema-reservas-api/tree/ead81f2e1aca9795367357c2b0e9208d4eb57c98), incluido en la cadena de PR hasta el [#82](https://github.com/Andy-752109/sistema-reservas-api/pull/82). Describe esa implementación en revisión; no afirma que ya esté integrada en `develop` o desplegada.
+Esta página documenta los modelos Usuario, Espacio y Reserva y las operaciones integradas en [develop](https://github.com/Andy-752109/sistema-reservas-api/tree/develop), revisadas el 12 de noviembre de 2026. Incluye los ajustes de diagnóstico del PR #82 y la conservación del historial del [PR #96](https://github.com/Andy-752109/sistema-reservas-api/pull/96) (issue #88). El estado de una versión desplegada se verifica por separado en [Inicio](Home.md).
 
 ## Diagrama de clases
 
@@ -68,7 +68,7 @@ El diagrama representa los datos persistidos de Prisma; sus operaciones se imple
 | Rol | Valores permitidos: ESTUDIANTE, DOCENTE y ADMIN |
 | EstadoReserva | ACTIVA, CANCELADA y FINALIZADA. No existe un endpoint de confirmación ni una transición automática a FINALIZADA en la implementación revisada |
 
-Eliminar un usuario elimina sus reservas en cascada según el esquema actual. La relación con Espacio usa `onDelete: Restrict`: un espacio con reservas se conserva y se desactiva desde el servicio. La conservación de una reserva al cancelarla no cambia el comportamiento de la eliminación administrativa de su usuario.
+Las relaciones de Reserva con Usuario y Espacio usan `onDelete: Restrict`. `DELETE /usuarios/:id` devuelve 409 si existe cualquier reserva del usuario (ACTIVA, CANCELADA o FINALIZADA), conservando usuario e historial sin cambios; solo elimina usuarios sin reservas con 204. La clave foránea protege también las eliminaciones directas y las operaciones concurrentes. Un espacio con reservas se conserva y se desactiva desde el servicio.
 
 ## Métodos por componente
 
@@ -80,7 +80,7 @@ Las firmas se resumen para facilitar la lectura; los métodos asíncronos devuel
 | UsuariosService / Usuario | `listar()` | Lista perfiles públicos por id; el controlador exige ADMIN |
 | UsuariosService / Usuario | `consultar(id, actor)` | Devuelve un perfil si el actor es propietario o ADMIN |
 | UsuariosService / Usuario | `actualizar(id, dto, actor)` | Modifica campos opcionales del perfil; solo ADMIN puede cambiar `rol`; vuelve a generar el hash si cambia la contraseña |
-| UsuariosService / Usuario | `eliminar(id)` | Elimina físicamente al usuario; el controlador exige ADMIN; no devuelve cuerpo |
+| UsuariosService / Usuario | `eliminar(id)` | ADMIN: elimina únicamente sin reservas (204); con cualquier reserva devuelve 409 y conserva usuario e historial |
 | AuthService / autenticación | `login(dto)` | Valida correo y contraseña con bcrypt; emite `{ access_token }`; credenciales incorrectas reciben 401 |
 | EspaciosService / Espacio | `listar(tipo?)` | Lista espacios activos; filtro opcional por tipo |
 | EspaciosService / Espacio | `consultar(id)` | Devuelve un espacio activo; un inactivo o inexistente recibe 404 |
@@ -121,7 +121,7 @@ El horario de consulta de disponibilidad no es una restricción adicional en `Re
 
 ### Permisos
 
-El autorregistro siempre crea ESTUDIANTE, aunque el cliente intente enviar otro rol. El rol se obtiene de PostgreSQL al validar el JWT, por lo que no basta modificar el payload o conservar un token con un rol anterior. Un token de un usuario eliminado deja de autorizar solicitudes.
+El autorregistro siempre crea ESTUDIANTE, aunque el cliente intente enviar otro rol. El rol se obtiene de PostgreSQL al validar el JWT, por lo que no basta modificar el payload o conservar un token con un rol anterior. Un token de un usuario eliminado deja de autorizar solicitudes. Si la eliminación se rechaza con 409 por tener reservas, el usuario permanece y conserva su acceso.
 
 ESTUDIANTE y DOCENTE operan sobre sus propias reservas y su propio perfil. ADMIN puede operar sobre perfiles y reservas ajenas y administrar espacios. Las rutas públicas de catálogo y disponibilidad no requieren JWT. Los perfiles de respuesta nunca incluyen contraseña ni hash.
 
@@ -138,7 +138,7 @@ Las rutas no llevan un prefijo `/api`: ese prefijo solo aparece en las rutas de 
 | GET | `/usuarios` | ADMIN | 200, lista de perfiles sin hashes | 401, 403 |
 | GET | `/usuarios/:id` | Propietario o ADMIN | 200, perfil sin hash | 400, 401, 403, 404 |
 | PATCH | `/usuarios/:id` | Propietario o ADMIN; cambiar rol exige ADMIN | 200, perfil actualizado sin hash | 400, 401, 403, 404, 409 |
-| DELETE | `/usuarios/:id` | ADMIN | 204, sin cuerpo | 400, 401, 403, 404 |
+| DELETE | `/usuarios/:id` | ADMIN | 204 sin reservas, sin cuerpo | 400, 401, 403, 404; 409 si tiene reservas de cualquier estado |
 
 ### Espacios
 
@@ -172,12 +172,12 @@ POST/PUT de reservas reciben `{ espacioId, inicio, fin }`, sin `usuarioId` ni `e
 | GET | `/api/docs-json` | Público | 200, documento OpenAPI JSON |
 | GET | `/api/docs-yaml` | Público | 200, documento OpenAPI YAML |
 
-En general, 400 indica entrada inválida, 401 ausencia o invalidez de autenticación, 403 falta de permiso, 404 recurso no disponible y 409 conflicto de negocio. Pueden ocurrir 5xx por fallos internos; el filtro global los registra sin revelar diagnósticos sensibles. CORS puede rechazar un origen de navegador no permitido con 403, antes de ejecutar la operación. La API no requiere cookies cross-origin.
+En general, 400 indica entrada inválida, 401 ausencia o invalidez de autenticación, 403 falta de permiso, 404 recurso no disponible y 409 conflicto de negocio. Para errores 5xx, el filtro global conserva el diagnóstico original y su stack en los logs privados del servidor, exporta a telemetría el tipo y, cuando aplica, el código de Prisma, y evita revelar detalles internos en la respuesta HTTP. CORS puede rechazar un origen de navegador no permitido con 403, antes de ejecutar la operación. La API no requiere cookies cross-origin.
 
 ## Fuentes y navegación
 
-- [Esquema Prisma](https://github.com/Andy-752109/sistema-reservas-api/blob/ead81f2e1aca9795367357c2b0e9208d4eb57c98/prisma/schema.prisma).
-- [Usuarios y autenticación](https://github.com/Andy-752109/sistema-reservas-api/tree/ead81f2e1aca9795367357c2b0e9208d4eb57c98/src/usuarios), [AuthService](https://github.com/Andy-752109/sistema-reservas-api/blob/ead81f2e1aca9795367357c2b0e9208d4eb57c98/src/auth/auth.service.ts) y [JwtStrategy](https://github.com/Andy-752109/sistema-reservas-api/blob/ead81f2e1aca9795367357c2b0e9208d4eb57c98/src/auth/jwt.strategy.ts).
-- [Espacios](https://github.com/Andy-752109/sistema-reservas-api/tree/ead81f2e1aca9795367357c2b0e9208d4eb57c98/src/espacios) y [reservas](https://github.com/Andy-752109/sistema-reservas-api/tree/ead81f2e1aca9795367357c2b0e9208d4eb57c98/src/reservas).
-- [Swagger y esquemas de respuesta](https://github.com/Andy-752109/sistema-reservas-api/blob/ead81f2e1aca9795367357c2b0e9208d4eb57c98/src/common/dto/api-responses.dto.ts).
-- [Issue #15](https://github.com/Andy-752109/sistema-reservas-api/issues/15), [inicio de la Wiki](https://github.com/Andy-752109/sistema-reservas-api/wiki) y [Descripción](https://github.com/Andy-752109/sistema-reservas-api/wiki/Descripcion). Las páginas del issue #14 y esta página requieren publicación en la Wiki; los archivos del repositorio no se publican automáticamente.
+- [Esquema Prisma](https://github.com/Andy-752109/sistema-reservas-api/blob/develop/prisma/schema.prisma).
+- [Usuarios y autenticación](https://github.com/Andy-752109/sistema-reservas-api/tree/develop/src/usuarios), [AuthService](https://github.com/Andy-752109/sistema-reservas-api/blob/develop/src/auth/auth.service.ts) y [JwtStrategy](https://github.com/Andy-752109/sistema-reservas-api/blob/develop/src/auth/jwt.strategy.ts).
+- [Espacios](https://github.com/Andy-752109/sistema-reservas-api/tree/develop/src/espacios) y [reservas](https://github.com/Andy-752109/sistema-reservas-api/tree/develop/src/reservas).
+- [Swagger y esquemas de respuesta](https://github.com/Andy-752109/sistema-reservas-api/blob/develop/src/common/dto/api-responses.dto.ts).
+- [Issue #15](https://github.com/Andy-752109/sistema-reservas-api/issues/15), [Inicio](Home.md) y [Descripción](Descripcion.md). El estado de publicación se documenta en [README](README.md); fusionar estos archivos no publica la pestaña Wiki automáticamente.

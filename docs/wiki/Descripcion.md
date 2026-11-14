@@ -24,7 +24,7 @@ La autenticación usa JWT y el acceso se controla por rol y propiedad de la rese
 - Catálogo de cubículos de estudio, laboratorios y canchas, con capacidad, ubicación y estado activo.
 - Consulta de disponibilidad para elegir un espacio y un intervalo.
 - Creación, consulta, modificación y cancelación de reservas, con validación de traslapes también ante solicitudes concurrentes.
-- Conservación del registro de las reservas canceladas; no bloquean nuevos intervalos.
+- Conservación del registro de las reservas canceladas; no bloquean nuevos intervalos. No se elimina un usuario que tenga reservas de cualquier estado (409), para preservar su historial.
 - API NestJS y frontend React en repositorios separados, con PostgreSQL y Prisma para persistencia.
 - Pruebas, documentación de la API, contenedores y un flujo de CI/CD con ambientes Dev/Prod en Azure.
 - Observabilidad mediante Application Insights para solicitudes, dependencias, trazas de negocio y errores.
@@ -60,8 +60,9 @@ Los roles indican quién responde por cada área y permiten colaborar entre inte
 
 ## Enlaces
 
-- [Inicio e índice de la Wiki](https://github.com/Andy-752109/sistema-reservas-api/wiki).
+- [Inicio e índice de la Wiki](Home.md).
 - [Repositorio de la API](https://github.com/Andy-752109/sistema-reservas-api).
 - [Repositorio del frontend](https://github.com/Andy-752109/sistema-reservas-web).
+- [Repositorio de infraestructura](https://github.com/Andy-752109/sistema-reservas-infra).
 - [Tablero del proyecto](https://github.com/users/Andy-752109/projects/2).
 - [Backlog y responsables](https://github.com/Andy-752109/sistema-reservas-api/issues).
