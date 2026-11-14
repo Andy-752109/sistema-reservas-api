@@ -11,7 +11,7 @@ El [índice Home](Home.md) reúne las seis páginas de documentación. Los Markd
 | [Infraestructura.md](Infraestructura.md) | `Infraestructura` |
 | [Deployment-y-CICD.md](Deployment-y-CICD.md) | `Deployment-y-CICD` |
 
-`README.md`, `PUBLICACION-componentes.md` y `VERIFICACION-97.md` son instrucciones/evidencia del repositorio, no páginas adicionales de la Wiki. La imagen `infraestructura.png` acompaña a Infraestructura y debe copiarse si se publica esa página.
+`README.md`, `PUBLICACION-componentes.md` y `VERIFICACION-97.md` son instrucciones/evidencia del repositorio, no páginas adicionales de la Wiki. Las imágenes `infraestructura.png`, `dashboard-plan-y-api.png` y `dashboard-tiempo-respuesta.png` acompañan a Infraestructura y deben copiarse al publicar esa página.
 
 ## Estado al 13 de noviembre de 2026
 
