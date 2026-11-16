@@ -11,9 +11,9 @@ Documentación del proyecto de **Infraestructura para el Desarrollo Continuo (IT
 | [Componentes, métodos y diagrama de clases](Componentes.md) | Modelo del sistema y responsabilidades | Integrado en el [PR #83](https://github.com/Andy-752109/sistema-reservas-api/pull/83); actualización #97 |
 | [Stack tecnológico y estrategia de ramas](Stack-y-ramas.md) | Tecnologías y flujo de colaboración | Publicado en el repositorio mediante el [PR #85](https://github.com/Andy-752109/sistema-reservas-api/pull/85) (issue #16) |
 | [Infraestructura Dev y Prod](Infraestructura.md) | Recursos y conexiones entre ambientes | Integrado en el [PR #100](https://github.com/Andy-752109/sistema-reservas-api/pull/100) |
-| [Deployment y CI/CD](Deployment-y-CICD.md) | Construcción, pruebas y despliegue | Integrado en el [PR #101](https://github.com/Andy-752109/sistema-reservas-api/pull/101); CD de Web pendiente del #53 |
+| [Deployment y CI/CD](Deployment-y-CICD.md) | Construcción, pruebas y despliegue | Integrado en el [PR #101](https://github.com/Andy-752109/sistema-reservas-api/pull/101); CD de API y Web probados en Dev y Prod |
 
-El índice enlaza los Markdown disponibles en `docs/wiki/`. «Integrado» o «publicado en el repositorio» no significa publicado en la pestaña Wiki de GitHub. El estado de entrega y las instrucciones para publicar se mantienen en [README](README.md).
+El índice enlaza los Markdown fuente de `docs/wiki/`. Las seis páginas ya están publicadas en la [Wiki de GitHub](https://github.com/Andy-752109/sistema-reservas-api/wiki); cada actualización de las fuentes requiere sincronizar la Wiki después del merge. El estado de entrega y las instrucciones se mantienen en [README](README.md).
 
 ## Repositorios y seguimiento
 
@@ -33,7 +33,11 @@ Hay dos ambientes en Azure: **Dev**, para validar la integración, y **Prod**, p
 | Dev | [Web Dev](https://reservas-web-dev-rw39me.azurewebsites.net) | [API Dev](https://reservas-api-dev-rw39me.azurewebsites.net) | [Swagger Dev](https://reservas-api-dev-rw39me.azurewebsites.net/api/docs) | [Health Dev](https://reservas-api-dev-rw39me.azurewebsites.net/health) |
 | Prod | [Web Prod](https://reservas-web-prod-rw39me.azurewebsites.net) | [API Prod](https://reservas-api-prod-rw39me.azurewebsites.net) | [Swagger Prod](https://reservas-api-prod-rw39me.azurewebsites.net/api/docs) | [Health Prod](https://reservas-api-prod-rw39me.azurewebsites.net/health) |
 
-**Actualización del 13 de noviembre de 2026:** la primera liberación de la API por CD ([PR #103](https://github.com/Andy-752109/sistema-reservas-api/pull/103), [run 43512516484](https://github.com/Andy-752109/sistema-reservas-api/actions/runs/43512516484)) finalizó correctamente, con aprobación manual de Prod. `/health` de Dev y Prod devuelve `status: ok`, `database: up` y el mismo SHA `18f279a2f56096cf7209c51d40880547a2339d72`. Ambos catálogos exponen los seis espacios de ejemplo. Web aún indica `version: pendiente` hasta el CD del #53; `config.js` distingue `DEV`/`PROD` y apunta a su API. Las comprobaciones y sus límites están en [VERIFICACION-97.md](VERIFICACION-97.md): no acreditan el funcionamiento completo de login, catálogo y reservas desde la interfaz.
+**Actualización del 16 de noviembre de 2026:** la primera liberación del web por CD ([web #9](https://github.com/Andy-752109/sistema-reservas-web/pull/9), [run 43815081376](https://github.com/Andy-752109/sistema-reservas-web/actions/runs/43815081376)) terminó correctamente, con aprobación manual de Prod. `config.js` de Dev y Prod indica `version: "7d33986"`, su ambiente (`DEV`/`PROD`) y la API de su mismo ambiente, y los dos sirven el mismo bundle. Se probó en Prod el flujo completo desde la interfaz: inicio de sesión, catálogo, reservar, Mis reservas y cancelación. Application Insights registró `reserva.creada`, `reserva.cancelada` y `reserva.traslape`.
+
+La prueba de interfaz en Prod y los eventos de Application Insights fueron confirmados por Andy al revisar la entrega. Las comprobaciones directas del CD, configuración y bundles, y el origen de cada evidencia, están en [VERIFICACION-97.md](VERIFICACION-97.md).
+
+**Actualización del 13 de noviembre de 2026:** la primera liberación de la API por CD ([PR #103](https://github.com/Andy-752109/sistema-reservas-api/pull/103), [run 43512516484](https://github.com/Andy-752109/sistema-reservas-api/actions/runs/43512516484)) finalizó correctamente, con aprobación manual de Prod. `/health` de Dev y Prod devuelve `status: ok`, `database: up` y el mismo SHA `18f279a2f56096cf7209c51d40880547a2339d72`. Ambos catálogos exponen los seis espacios de ejemplo.
 
 ## Equipo
 
