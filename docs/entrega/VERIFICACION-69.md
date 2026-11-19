@@ -1,6 +1,6 @@
 # Verificación de accesos — issue #69
 
-Fecha: **16 de noviembre de 2026**. Comprobaciones de lectura sin autenticación
+Fecha de última comprobación: **18 de noviembre de 2026** (la primera se realizó el 16 de noviembre). Comprobaciones de lectura sin autenticación
 contra enlaces públicos y metadatos de GitHub/Docker Hub. No se modificaron permisos,
 cuentas, datos ni recursos Azure.
 
@@ -16,8 +16,10 @@ cuentas, datos ni recursos Azure.
 | [Wiki Descripcion](https://github.com/Andy-752109/sistema-reservas-api/wiki/Descripcion) | HTTP 200 sin autenticación |
 | [Wiki Infraestructura](https://github.com/Andy-752109/sistema-reservas-api/wiki/Infraestructura) | HTTP 200 sin autenticación |
 
-Estas comprobaciones acreditan disponibilidad pública de los enlaces, no que el
-profesor haya recibido el paquete ni que se hayan verificado sus cuentas personales.
+Estas comprobaciones acreditan disponibilidad pública de los enlaces. Por separado,
+Ramiro confirmó el 18 de noviembre que el profesor ya recibió los enlaces y las
+cuentas de evaluación por privado. No se accedió a las cuentas del profesor ni se
+verificó su sesión personal.
 La revisión de las columnas y del estado final de las tareas corresponde al ensayo.
 
 ## Ambientes
@@ -50,14 +52,14 @@ descargaron las capas completas de las imágenes.
 Referencias: [API en Docker Hub](https://hub.docker.com/r/andreaarv/reservas-api/tags)
 y [Web en Docker Hub](https://hub.docker.com/r/andreaarv/reservas-web/tags).
 
-## Pendientes para completar la entrega
+## Estado y pendientes para completar la entrega
 
-- Confirmar recepción de enlaces y cuentas necesarias por el profesor.
+- Recepción de enlaces y cuentas confirmada por Ramiro el 18 de noviembre.
 - Andy confirmó en la revisión del PR #106 que no se requiere acceso individual
   del profesor a Azure: se mostrarán dashboard y Application Insights en la demo.
 - Presentación confirmada por Ramiro: jueves **19 de noviembre de 2026**, entre
-  **18:00 y 20:00**, hora de Ciudad de México. Falta confirmar los responsables de
-  disponibilidad. Andy confirmó que eliminará `reservas-rg` con `terraform destroy`
+  **18:00 y 20:00**, hora de Ciudad de México. Ramiro, responsable del #69, debe repetir
+  las comprobaciones desde las 17:30 y registrar el resultado. Andy confirmó que eliminará `reservas-rg` con `terraform destroy`
   después de la demo; la ejecución real queda pendiente. Repositorios, Wiki y tablero
   permanecerán en GitHub.
 - Completar las capturas y la consulta guardada de APM con el equipo.
@@ -66,5 +68,18 @@ y [Web en Docker Hub](https://hub.docker.com/r/andreaarv/reservas-web/tags).
 
 No se marca el #69 como terminado ni se concede acceso al portal. La confirmación
 del apagado debe registrarse después de realizarlo, no anticipadamente.
+
+## Estado de los criterios de aceptación
+
+- [x] Profesor con enlaces públicos a los tres repositorios, al tablero y a la Wiki;
+  recepción de enlaces y cuentas confirmada por Ramiro.
+- [x] Imágenes públicas y tags de la liberación comprobados de nuevo sin autenticación.
+- [ ] Recursos Azure disponibles el día de la presentación y eliminados después
+  según el acuerdo con Andy. La lectura del 18 de noviembre no acredita ese evento futuro.
+
+El [índice de entrega](README.md#registro-del-día-de-la-presentación) incluye el
+registro pendiente para el 19 de noviembre. Este es el único criterio de aceptación
+que impide cerrar el #69; la validación de la consulta KQL y las capturas de APM son
+parte de la preparación de la demo, no nuevos criterios de acceso.
 
 [Volver al índice](README.md)
