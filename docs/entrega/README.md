@@ -2,7 +2,7 @@
 
 Índice para que el profesor revise el código, la documentación, los ambientes y
 las evidencias del proyecto. Corresponde al [issue #69](https://github.com/Andy-752109/sistema-reservas-api/issues/69).
-Los resultados de acceso se comprobaron el **16 de noviembre de 2026** y están en
+Los resultados de acceso se comprobaron nuevamente el **18 de noviembre de 2026** y están en
 [VERIFICACION-69.md](VERIFICACION-69.md).
 
 ## Enlaces del proyecto
@@ -18,8 +18,9 @@ Los resultados de acceso se comprobaron el **16 de noviembre de 2026** y están 
 
 Los tres repositorios, el tablero y la Wiki están disponibles públicamente.
 El backlog original menciona dos repositorios; la entrega incluye también el tercero,
-al que se trasladó Terraform. La publicación de este índice no confirma por sí sola
-que el profesor recibió los enlaces: el equipo debe enviárselos y confirmar la entrega.
+al que se trasladó Terraform. Ramiro confirmó el **18 de noviembre de 2026** que el
+profesor ya recibió los enlaces y las cuentas de evaluación por privado. No se
+publican las credenciales ni los datos personales del profesor.
 
 ## Aplicación y API
 
@@ -67,18 +68,16 @@ Para la demo, comprobar con Andy que **Demo · trazas y errores** esté guardada
 Application Insights de Prod (`reservas-appi-prod-westus3`) y preparar el dashboard
 **Sistema de Reservas · Métricas**. El archivo KQL y las capturas no acreditan por sí
 solos una sesión del profesor en Azure ni una consulta recién ejecutada en el portal.
+El archivo ahora incluye solicitudes 401/409 y no impone los últimos 30 minutos;
+su preparación y validación pendiente se explican en la [guía de la consulta](../observability/README.md).
 
 ## Acceso al portal de Azure
 
-**Pendiente de confirmar con la rúbrica:** si el profesor necesita entrar con su
-propia cuenta o si evaluará el portal durante la demostración del equipo. El
-checklist compartido exige que el equipo tenga el portal abierto, pero no determina
-el permiso individual del profesor.
-
-Si la evaluación exige acceso individual, coordinar con Andy la identidad del
-profesor, los recursos necesarios y el alcance del acceso, con aprobación explícita
-antes de modificar permisos. Si basta la demo, registrar esa confirmación y
-preparar las evidencias. No se ha concedido acceso al portal como parte de este issue.
+Andy confirmó en la [revisión del PR #106](https://github.com/Andy-752109/sistema-reservas-api/pull/106)
+que el profesor **no necesita acceso individual a Azure**: el equipo mostrará el
+dashboard y Application Insights durante la demo. No se ha concedido acceso al
+portal como parte de este issue. Ramiro confirmó la recepción de los enlaces y las
+cuentas de evaluación por el profesor el 18 de noviembre.
 
 ## Preparación de la presentación
 
@@ -87,10 +86,10 @@ Pendientes de completar con el equipo:
 | Dato | Estado |
 |------|--------|
 | Fecha, hora y zona horaria de la presentación final | Jueves **19 de noviembre de 2026**, entre **18:00 y 20:00**, hora de Ciudad de México (`America/Mexico_City`), confirmada por Ramiro |
-| Requisito de acceso del profesor al portal | Por confirmar con la rúbrica |
-| Responsable de verificar Azure antes de la demo | Propuesta: Andy; falta confirmación |
-| Responsable y momento de apagado posterior | Por confirmar con Andy, después de concluir la revisión acordada |
-| Envío de este índice y cuentas de evaluación al profesor | Pendiente de confirmación de entrega |
+| Requisito de acceso del profesor al portal | Confirmado por Andy: se muestra durante la demo, sin acceso individual |
+| Responsable de verificar Azure antes de la demo | Ramiro, como responsable del #69: repetir las comprobaciones a las 17:30 y registrar resultados |
+| Responsable y momento de apagado posterior | Andy confirmó que ejecutará `terraform destroy` de `reservas-rg` después de la demo; falta registrar su ejecución |
+| Envío de este índice y cuentas de evaluación al profesor | Ramiro confirmó el 18 de noviembre que el profesor recibió enlaces y cuentas por privado |
 
 ### Un día antes
 
@@ -122,17 +121,35 @@ la presentación y coordinar el apagado al concluir la revisión del profesor.
 ### Al terminar
 
 Confirmar con el equipo y el profesor que concluyó la revisión que requiere los
-ambientes disponibles. Andy debe ejecutar y verificar el apagado según el plan
-acordado, conservando las evidencias y registrando qué recursos quedaron detenidos
-y cuándo. Este documento no ejecuta cambios de infraestructura ni programa apagados.
+ambientes disponibles. Andy confirmó que ejecutará `terraform destroy` de
+`reservas-rg` después de la demo; los repositorios, la Wiki y el tablero permanecen
+en GitHub. Conservar las evidencias antes y registrar el resultado y la fecha de
+la eliminación. Esta confirmación es un plan, no evidencia de que ya se ejecutó;
+este documento no ejecuta cambios de infraestructura ni programa eliminaciones.
 
 ## Estado del #69
 
 - [x] Repositorios, tablero y Wiki accesibles públicamente en la comprobación anónima.
 - [x] Imágenes Docker Hub públicas y tags de la liberación disponibles.
-- [ ] Profesor informado y acceso necesario confirmado, incluido Azure si lo exige la rúbrica.
-- [ ] Fecha y responsables operativos confirmados.
+- [x] Profesor informado y recepción de enlaces y cuentas confirmada por Ramiro el 18 de noviembre; Azure se mostrará en la demo según confirmó Andy.
+- [x] Fecha registrada; Ramiro verifica accesos y disponibilidad del #69 y Andy realiza la eliminación posterior según lo confirmado en #106.
 - [ ] Azure verificado encendido el día de la presentación y apagado después según lo acordado.
 
-El #69 permanece abierto: la verificación actual y este índice no sustituyen la
-entrega efectiva ni las comprobaciones del día de la presentación.
+El #69 permanece abierto: la entrega ya fue confirmada, pero la verificación
+actual no sustituye las comprobaciones del día de la presentación y del apagado posterior.
+
+## Registro del día de la presentación
+
+Completar con resultados reales, en hora de Ciudad de México. No anticipar el
+cierre del #69 con las comprobaciones del 18 de noviembre.
+
+| Momento | Responsable | Comprobación | Resultado |
+|---------|-------------|--------------|-----------|
+| 19 nov, desde las 17:30 | Ramiro | Web y Swagger Dev/Prod accesibles; `/health` con `database: up`; versiones correctas en `config.js` y `/health` | Pendiente |
+| 19 nov, presentación entre 18:00 y 20:00 | Equipo | Mantener disponibles ambos ambientes durante la evaluación; portal, dashboard y Application Insights abiertos | Pendiente |
+| Después de finalizar la evaluación | Andy | Ejecutar y verificar la eliminación acordada de `reservas-rg`, después de conservar las evidencias | Pendiente |
+
+Registrar fecha, hora, resultado y enlace a la evidencia de cada paso en el #69.
+Después de la eliminación, comprobar también que repositorios, Wiki, tablero e
+imágenes Docker Hub siguen públicos. Solo entonces completar el último criterio y
+cerrar el issue. No se ha programado ni ejecutado ninguna eliminación desde este trabajo.

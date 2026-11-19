@@ -46,12 +46,14 @@ Las verificaciones directas del CD, `config.js`, hashes y publicación respaldan
 - Los enlaces de código de Componentes apuntan a `develop`. El contrato de eliminación de usuarios refleja el #88 / PR #96 (409 con reservas, 204 sin reservas).
 - Las instrucciones distinguen los documentos fuente revisados en el repositorio de su publicación y sincronización en la pestaña Wiki.
 
-## Wiki publicada; actualización final pendiente de sincronización
+## Wiki publicada y actualización final sincronizada
 
 Andy confirmó que el error inicial se debía a que faltaba crear la primera página de la Wiki desde GitHub, no a permisos. Ya creó la Home provisional. El 13 de noviembre se verificó `git ls-remote https://github.com/Andy-752109/sistema-reservas-api.wiki.git HEAD`, que respondió con el commit `aed177ee5ca1e2f11db5ce1ae55a27361341b3bd`.
 
 Después de fusionar el PR #102, se publicaron las seis páginas y la imagen de infraestructura, reemplazando la Home provisional, mediante el commit de Wiki `73581ef`. El 16 de noviembre se volvieron a comprobar por HTTPS [Home](https://github.com/Andy-752109/sistema-reservas-api/wiki), [Descripcion](https://github.com/Andy-752109/sistema-reservas-api/wiki/Descripcion), [Componentes](https://github.com/Andy-752109/sistema-reservas-api/wiki/Componentes), [Stack-y-ramas](https://github.com/Andy-752109/sistema-reservas-api/wiki/Stack-y-ramas), [Infraestructura](https://github.com/Andy-752109/sistema-reservas-api/wiki/Infraestructura) y [Deployment-y-CICD](https://github.com/Andy-752109/sistema-reservas-api/wiki/Deployment-y-CICD): todas devolvieron HTTP 200. La actualización de métricas de Andy ya está en la Wiki mediante el commit `1454387` y debe conservarse.
 
-El acuerdo es mantener `docs/wiki/` como fuente. No se publican README, PUBLICACION-* ni este archivo de evidencia como páginas adicionales. Para cerrar #14/#97 falta fusionar esta actualización de las fuentes, sincronizar Home con la liberación del web y comprobar su contenido y enlaces en la Wiki. El cierre debe registrar el PR y el commit de Wiki finales.
+El acuerdo es mantener `docs/wiki/` como fuente. No se publican README, PUBLICACION-* ni este archivo de evidencia como páginas adicionales.
+
+El 18 de noviembre se fusionó la actualización final en el [PR #105](https://github.com/Andy-752109/sistema-reservas-api/pull/105), commit `4c791a252b5a51f55107f4e3d5dac880f581b200`. Home se sincronizó mediante el commit de Wiki `b84e332`, descendiente de `1454387`: solo cambió Home y se conservaron la página de infraestructura y las imágenes de métricas. Las seis páginas publicadas y las tres imágenes respondieron HTTP 200. Se comprobó que Home incluye la actualización del 16 de noviembre y ya no indica que el CD web esté pendiente. Los enlaces a README y VERIFICACION apuntan a los archivos fuente del repositorio.
 
 [Inicio](Home.md) · [Estado e instrucciones](README.md)

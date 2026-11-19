@@ -21,7 +21,7 @@ El [índice Home](Home.md) reúne las seis páginas de documentación. Los Markd
 - La Wiki ya está inicializada: Andy creó la primera página `Home` y el remoto `.wiki.git` responde. El error previo se debía a que faltaba esa página, no a permisos. No se modificaron permisos ni configuración del repositorio desde este trabajo.
 - El acuerdo es conservar `docs/wiki/` como fuente revisada por PR y sincronizar la Wiki después de cada merge de documentación. Home ya contiene el índice, no un placeholder. La actualización de métricas de Andy (commit de Wiki `1454387`) debe conservarse al sincronizar.
 - API y Web ya se liberaron por CD a Dev y Prod, con aprobación manual de producción. Web muestra `version: 7d33986` en ambos ambientes y sus bundles tienen hashes idénticos. Andy confirmó el flujo desde la interfaz de Prod y sus trazas de negocio en Application Insights; el origen de esa evidencia y las verificaciones directas están en [VERIFICACION-97.md](VERIFICACION-97.md).
-- Esta pasada final corrige las referencias antiguas al CD web pendiente. Falta fusionarla y sincronizar Home en la Wiki antes de registrar el cierre de #14/#97.
+- La actualización final se fusionó en el [PR #105](https://github.com/Andy-752109/sistema-reservas-api/pull/105) y Home se sincronizó el 18 de noviembre mediante el commit de Wiki `b84e332`, conservando el commit de métricas `1454387`.
 
 ## Publicación después de revisar el contenido
 
