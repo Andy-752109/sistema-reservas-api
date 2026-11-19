@@ -46,6 +46,10 @@ El sistema reúne en un solo lugar el catálogo de espacios y sus horarios, **im
 
 El [índice de documentación](docs/wiki/Home.md) reúne descripción, componentes, stack, infraestructura y CI/CD, con enlaces HTTPS de Web/API de Dev y Prod, Swagger y salud. El [README de documentación](docs/wiki/README.md) describe el estado de publicación; guardar estos archivos no publica automáticamente la pestaña Wiki de GitHub.
 
+El [índice de entrega para evaluación](docs/entrega/README.md) reúne los accesos
+públicos, ambientes, imágenes Docker Hub y evidencias, con los pendientes de
+coordinación para la presentación del issue #69.
+
 ## Modelo de dominio
 
 ```
