@@ -1,28 +1,42 @@
-// Run from the Application Insights resource (classic table names).
-// Select a time range that includes the demo, then save as Reservas-APM-demo.
+// Ejecutar desde Application Insights (tablas clasicas).
+// Guardar como: Demo · trazas y errores
+// Elegir el intervalo en el portal: no se limita a los ultimos 30 minutos.
+// Para la evidencia del 16 de noviembre, seleccionar un intervalo que incluya ese dia.
 union
 (
     traces
-    | where timestamp > ago(30m)
-    | where tostring(customDimensions.event) in ("reserva.creada", "reserva.cancelada", "reserva.traslape")
+    | where tostring(customDimensions.event) in ("reserva.creada", "reserva.cancelada", "reserva.traslape", "api.error_5xx")
     | project timestamp, cloud_RoleName, operation_Id, severityLevel,
-        tipo="traza", detalle=message, customDimensions
+        tipo="traza", detalle=message, customDimensions,
+        evento=tostring(customDimensions.event),
+        ruta=tostring(customDimensions["http.route"]),
+        codigo=tostring(customDimensions["http.response.status_code"])
 ),
 (
     exceptions
-    | where timestamp > ago(30m)
     | where tostring(customDimensions.event) == "api.error_5xx"
     | project timestamp, cloud_RoleName, operation_Id, severityLevel,
-        tipo="excepcion", detalle=coalesce(innermostMessage, outerMessage), customDimensions
+        tipo="excepcion", detalle=coalesce(innermostMessage, outerMessage), customDimensions,
+        evento=tostring(customDimensions.event),
+        ruta=tostring(customDimensions["http.route"]),
+        codigo=tostring(customDimensions["http.response.status_code"])
+),
+(
+    requests
+    // Filtrar por resultCode: un 401 no siempre se clasifica como success=false.
+    | where resultCode in ("401", "409") or toint(resultCode) between (500 .. 599)
+    | project timestamp, cloud_RoleName, operation_Id,
+        severityLevel=toint(iff(toint(resultCode) >= 500, 3, 2)),
+        tipo="solicitud", detalle=name, customDimensions,
+        evento=case(resultCode == "401", "http.401", resultCode == "409", "http.409", "http.5xx"),
+        ruta=coalesce(tostring(customDimensions["http.route"]), name),
+        codigo=tostring(resultCode)
 )
 | where cloud_RoleName in ("api-dev", "api-prod")
-| extend evento=tostring(customDimensions.event),
-    usuarioId=tostring(customDimensions.usuarioId),
+| extend usuarioId=tostring(customDimensions.usuarioId),
     espacioId=tostring(customDimensions.espacioId),
     reservaId=tostring(customDimensions.reservaId),
-    actorId=tostring(customDimensions.actorId),
-    ruta=tostring(customDimensions["http.route"]),
-    codigo=tostring(customDimensions["http.response.status_code"])
+    actorId=tostring(customDimensions.actorId)
 | project timestamp, cloud_RoleName, tipo, severityLevel, evento, detalle,
     usuarioId, espacioId, reservaId, actorId, ruta, codigo, operation_Id
 | order by timestamp desc

@@ -67,18 +67,16 @@ Para la demo, comprobar con Andy que **Demo · trazas y errores** esté guardada
 Application Insights de Prod (`reservas-appi-prod-westus3`) y preparar el dashboard
 **Sistema de Reservas · Métricas**. El archivo KQL y las capturas no acreditan por sí
 solos una sesión del profesor en Azure ni una consulta recién ejecutada en el portal.
+El archivo ahora incluye solicitudes 401/409 y no impone los últimos 30 minutos;
+su preparación y validación pendiente se explican en la [guía de la consulta](../observability/README.md).
 
 ## Acceso al portal de Azure
 
-**Pendiente de confirmar con la rúbrica:** si el profesor necesita entrar con su
-propia cuenta o si evaluará el portal durante la demostración del equipo. El
-checklist compartido exige que el equipo tenga el portal abierto, pero no determina
-el permiso individual del profesor.
-
-Si la evaluación exige acceso individual, coordinar con Andy la identidad del
-profesor, los recursos necesarios y el alcance del acceso, con aprobación explícita
-antes de modificar permisos. Si basta la demo, registrar esa confirmación y
-preparar las evidencias. No se ha concedido acceso al portal como parte de este issue.
+Andy confirmó en la [revisión del PR #106](https://github.com/Andy-752109/sistema-reservas-api/pull/106)
+que el profesor **no necesita acceso individual a Azure**: el equipo mostrará el
+dashboard y Application Insights durante la demo. No se ha concedido acceso al
+portal como parte de este issue. Sigue pendiente confirmar la recepción de los
+enlaces y las cuentas de evaluación por el profesor.
 
 ## Preparación de la presentación
 
@@ -87,9 +85,9 @@ Pendientes de completar con el equipo:
 | Dato | Estado |
 |------|--------|
 | Fecha, hora y zona horaria de la presentación final | Jueves **19 de noviembre de 2026**, entre **18:00 y 20:00**, hora de Ciudad de México (`America/Mexico_City`), confirmada por Ramiro |
-| Requisito de acceso del profesor al portal | Por confirmar con la rúbrica |
+| Requisito de acceso del profesor al portal | Confirmado por Andy: se muestra durante la demo, sin acceso individual |
 | Responsable de verificar Azure antes de la demo | Propuesta: Andy; falta confirmación |
-| Responsable y momento de apagado posterior | Por confirmar con Andy, después de concluir la revisión acordada |
+| Responsable y momento de apagado posterior | Andy confirmó que ejecutará `terraform destroy` de `reservas-rg` después de la demo; falta registrar su ejecución |
 | Envío de este índice y cuentas de evaluación al profesor | Pendiente de confirmación de entrega |
 
 ### Un día antes
@@ -122,15 +120,17 @@ la presentación y coordinar el apagado al concluir la revisión del profesor.
 ### Al terminar
 
 Confirmar con el equipo y el profesor que concluyó la revisión que requiere los
-ambientes disponibles. Andy debe ejecutar y verificar el apagado según el plan
-acordado, conservando las evidencias y registrando qué recursos quedaron detenidos
-y cuándo. Este documento no ejecuta cambios de infraestructura ni programa apagados.
+ambientes disponibles. Andy confirmó que ejecutará `terraform destroy` de
+`reservas-rg` después de la demo; los repositorios, la Wiki y el tablero permanecen
+en GitHub. Conservar las evidencias antes y registrar el resultado y la fecha de
+la eliminación. Esta confirmación es un plan, no evidencia de que ya se ejecutó;
+este documento no ejecuta cambios de infraestructura ni programa eliminaciones.
 
 ## Estado del #69
 
 - [x] Repositorios, tablero y Wiki accesibles públicamente en la comprobación anónima.
 - [x] Imágenes Docker Hub públicas y tags de la liberación disponibles.
-- [ ] Profesor informado y acceso necesario confirmado, incluido Azure si lo exige la rúbrica.
+- [ ] Profesor informado y recepción de enlaces y cuentas confirmada; Azure se mostrará en la demo según confirmó Andy.
 - [ ] Fecha y responsables operativos confirmados.
 - [ ] Azure verificado encendido el día de la presentación y apagado después según lo acordado.
 

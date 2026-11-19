@@ -53,13 +53,16 @@ y [Web en Docker Hub](https://hub.docker.com/r/andreaarv/reservas-web/tags).
 ## Pendientes para completar la entrega
 
 - Confirmar recepción de enlaces y cuentas necesarias por el profesor.
-- Consultar la rúbrica respecto al portal de Azure; el checklist de demo no basta
-  para deducir que deba concederse acceso individual.
+- Andy confirmó en la revisión del PR #106 que no se requiere acceso individual
+  del profesor a Azure: se mostrarán dashboard y Application Insights en la demo.
 - Presentación confirmada por Ramiro: jueves **19 de noviembre de 2026**, entre
   **18:00 y 20:00**, hora de Ciudad de México. Falta confirmar los responsables de
-  disponibilidad y apagado, el momento acordado de apagado posterior y la ejecución real.
+  disponibilidad. Andy confirmó que eliminará `reservas-rg` con `terraform destroy`
+  después de la demo; la ejecución real queda pendiente. Repositorios, Wiki y tablero
+  permanecerán en GitHub.
 - Completar las capturas y la consulta guardada de APM con el equipo.
-- Sincronizar la actualización final de Home después del merge del #105.
+- Home se sincronizó después del merge del #105 mediante el commit de Wiki
+  `b84e332`, conservando el commit de métricas `1454387`.
 
 No se marca el #69 como terminado ni se concede acceso al portal. La confirmación
 del apagado debe registrarse después de realizarlo, no anticipadamente.
